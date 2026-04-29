@@ -1,0 +1,8 @@
+// Guarded conditional with block body
+P1 abs (V0[:8.0]) -> R0[:8.0]
+  V0[:8.0] => Z0[:8.0]
+  (Z0[:8.0] < 0) -> {
+    0 - Z0[:8.0] => Z0[:8.0]
+  }
+  Z0[:8.0] => R0[:8.0]
+END

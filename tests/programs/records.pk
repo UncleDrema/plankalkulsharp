@@ -1,0 +1,15 @@
+// Isolated test for record types and field access
+//
+// A1 = (S1.8, S1.8)  — a pair of 8-bit integers
+//
+// P1 swap_pair: takes two values, returns the second via record field access
+//   Creates a record, assigns V0 to field 0 and V1 to field 1,
+//   then returns field 1 (i.e. V1).
+
+A1 = (S1.8, S1.8)
+
+P1 swap_pair (V0[:8.0], V1[:8.0]) -> R0[:8.0]
+  V0[:8.0] => Z0[0 : A1]
+  V1[:8.0] => Z0[1 : A1]
+  Z0[1 : A1] => R0[:8.0]
+END

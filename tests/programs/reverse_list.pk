@@ -1,0 +1,78 @@
+// Linked list reversal using an array of record (struct) nodes
+//
+// Node type A1 = (value: S1.8, next_index: S1.8)
+// Node pool A2 = 100 × A1  (fixed-size "heap")
+// Pointers are integer indices into the pool; -1 = null.
+//
+// Input:  V0 = number of nodes (1..100)
+//         V1 = position to query in the reversed list (0-based)
+// Output: R0 = value at position V1 after reversal
+//
+// Builds list  0 -> 1 -> ... -> (V0-1) -> null
+// Reverses to  (V0-1) -> (V0-2) -> ... -> 0 -> null
+// Walks V1 steps from the new head, returns the value.
+//
+// Examples:
+//   reverse_list(5, 0) = 4   (head of reversed list)
+//   reverse_list(5, 1) = 3
+//   reverse_list(5, 4) = 0   (tail of reversed list)
+//   reverse_list(1, 0) = 0   (single node)
+
+// --- Type definitions ---
+A1 = (S1.8, S1.8)
+A2 = 100 x A1
+
+P1 reverse_list (V0[:8.0], V1[:8.0]) -> R0[:8.0]
+  // Z0 = node pool (array of A1 records)
+  // Z1 = loop counter / temp
+  // Z2 = last node index (V0 - 1)
+  // Z3 = null sentinel (-1)
+  // Z4 = prev pointer (reversal)
+  // Z5 = curr pointer (reversal)
+  // Z6 = temp next pointer
+  // Z7 = walk counter
+
+  V0[:8.0] - 1 => Z2[:8.0]
+  0 - 1 => Z3[:8.0]
+
+  // Build linked list: node[i].value = i, node[i].next = i + 1
+  FOR Z1[:8.0] FROM 0 TO Z2[:8.0] {
+    Z1[:8.0] => Z0[Z1.0 : A2]
+    Z1[:8.0] + 1 => Z0[Z1.1 : A2]
+  }
+
+  // Terminate: last node's next = -1 (null)
+  Z3[:8.0] => Z0[Z2.1 : A2]
+
+  // --- Reverse the linked list ---
+  // prev = -1, curr = 0 (head)
+  Z3[:8.0] => Z4[:8.0]
+  0 => Z5[:8.0]
+
+  // while curr != null
+  W {
+    (Z5[:8.0] != Z3[:8.0]) -> {
+      // temp = node[curr].next
+      Z0[Z5.1 : A2] => Z6[:8.0]
+      // node[curr].next = prev
+      Z4[:8.0] => Z0[Z5.1 : A2]
+      // prev = curr
+      Z5[:8.0] => Z4[:8.0]
+      // curr = temp
+      Z6[:8.0] => Z5[:8.0]
+    }
+  }
+
+  // --- Walk reversed list V1 steps from the new head ---
+  // Z4 = new head (prev after loop)
+  0 => Z7[:8.0]
+  W {
+    (Z7[:8.0] < V1[:8.0]) -> {
+      Z0[Z4.1 : A2] => Z4[:8.0]
+      Z7[:8.0] + 1 => Z7[:8.0]
+    }
+  }
+
+  // Return value at the reached node
+  Z0[Z4.0 : A2] => R0[:8.0]
+END

@@ -1,0 +1,24 @@
+// Test for complex user-defined types with nested access
+//
+// A1 = S1.8               — 8-bit integer
+// A2 = (A1, A1)           — pair of integers
+// A3 = 3 x A2             — array of 3 pairs
+//
+// P1 nested_access: builds an array of pairs, accesses nested fields
+//   Z0 = array of 3 pairs
+//   Stores (10, 20) at index 0, (30, 40) at index 1, (50, 60) at index 2
+//   Returns Z0[V0].1 (second field of pair at index V0)
+
+A1 = S1.8
+A2 = (A1, A1)
+A3 = 3 x A2
+
+P1 nested_access (V0[:8.0]) -> R0[:8.0]
+  10 => Z0[0.0 : A3]
+  20 => Z0[0.1 : A3]
+  30 => Z0[1.0 : A3]
+  40 => Z0[1.1 : A3]
+  50 => Z0[2.0 : A3]
+  60 => Z0[2.1 : A3]
+  Z0[V0.1 : A3] => R0[:8.0]
+END

@@ -1,0 +1,17 @@
+// Type definitions for chess
+A1 = S1.3
+A2 = 2 x A1
+A3 = S1.4
+
+// Maximum of two 8-bit integers
+P1 max (V0[:8.0], V1[:8.0]) -> R0[:8.0]
+  V0[:8.0] => Z1[:8.0]
+  (Z1[:8.0] < V1[:8.0]) -> V1[:8.0] => Z1[:8.0]
+  Z1[:8.0] => R0[:8.0]
+END
+
+// Maximum of three 8-bit integers
+P2 max3 (V0[:8.0], V1[:8.0], V2[:8.0]) -> R0[:8.0]
+  max(V0[:8.0], V1[:8.0]) => Z1[:8.0]
+  max(Z1[:8.0], V2[:8.0]) => R0[:8.0]
+END

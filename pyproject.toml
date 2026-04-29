@@ -1,0 +1,27 @@
+[project]
+name = "plankalkulsharp"
+version = "0.1.0"
+description = "Plankalkül → CLR compiler: compiles Konrad Zuse's Plankalkül to .NET CIL"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "antlr4-python3-runtime~=4.13",
+]
+
+[project.scripts]
+plankalkulsharp = "plankalkulsharp.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plankalkulsharp"]
