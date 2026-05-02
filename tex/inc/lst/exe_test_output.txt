@@ -1,0 +1,13 @@
+> uv run python -m plankalkulsharp compile tests\programs\test_fibonacci.pk -o build\PlankalkulProgram.il
+Wrote build\PlankalkulProgram.il
+Built build/bin/Release/net10.0/PlankalkulProgram.exe
+
+> .\build\bin\Release\net10.0\PlankalkulProgram.exe 10
+55
+
+> uv run python -m plankalkulsharp compile tests\programs\test_reverse_list.pk -o build\PlankalkulProgram.il
+Wrote build\PlankalkulProgram.il
+Built build/bin/Release/net10.0/PlankalkulProgram.exe
+
+> .\build\bin\Release\net10.0\PlankalkulProgram.exe 5 5
+4

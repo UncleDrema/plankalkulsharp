@@ -1,0 +1,71 @@
+program        = { typeDef | programDef } ;
+
+typeDef        = identifier, "=", typeExpr ;
+typeExpr       = integer
+               | integer, ".", integer
+               | integer, "x", typeExpr
+               | "(", typeExpr, ",", typeExpr, { ",", typeExpr }, ")"
+               | identifier ;
+
+programDef     = programId, [ identifier ], "(", [ paramList ], ")",
+                 "->", resultSpec, statementList, "END" ;
+programId      = "P", integer ;
+paramList      = varRef, { ",", varRef } ;
+resultSpec     = varRef
+               | "(", varRef, ",", varRef, { ",", varRef }, ")" ;
+
+statementList  = { statement } ;
+statement      = expr, "=>", varRef
+               | expr, "->", guardBody
+               | wLoop
+               | forLoop ;
+guardBody      = "{", statementList, "}"
+               | statement ;
+wLoop          = "W", "{", statement, { statement }, "}" ;
+forLoop        = "FOR", varRef, "FROM", expr, "TO", expr,
+                 "{", statementList, "}" ;
+
+expr           = orExpr ;
+orExpr         = andExpr, { "|", andExpr } ;
+andExpr        = compExpr, { "&", compExpr } ;
+compExpr       = addExpr, [ compOp, addExpr ] ;
+compOp         = "=" | "!=" | "<" | ">" | "<=" | ">=" ;
+addExpr        = mulExpr, { ( "+" | "-" ), mulExpr } ;
+mulExpr        = powExpr, { ( "*" | "/" ), powExpr } ;
+powExpr        = unaryExpr, [ "**", unaryExpr ] ;
+unaryExpr      = "~", unaryExpr
+               | "-", unaryExpr
+               | atom ;
+atom           = integer
+               | "L"
+               | bitSequence
+               | funcCall
+               | varRef
+               | "(", expr, ")" ;
+
+funcCall       = ( identifier | programId ), "(", [ argList ], ")" ;
+argList        = expr, { ",", expr } ;
+
+varRef         = varKind, integer,
+                 [ "[", [ component ], [ ":", typeInline ], "]" ] ;
+varKind        = "V" | "Z" | "C" | "R" ;
+component      = componentElem, { ".", componentElem } ;
+componentElem  = integer
+               | varKind, integer
+               | "(", expr, ")" ;
+
+typeInline     = integer, ".", integer
+               | integer, "x", typeInline
+               | "(", typeInline, ",", typeInline,
+                 { ",", typeInline }, ")"
+               | identifier
+               | integer ;
+
+identifier     = ( "a" ... "z" | "_" ),
+                 { "a" ... "z" | "A" ... "Z" | "0" ... "9" | "_" } ;
+integer        = digit, { digit } ;
+digit          = "0" ... "9" ;
+bitSequence    = ("L" | "0"), { "L" | "0" } ;
+
+lineComment    = "//", { any character except line break } ;
+blockComment   = "/*", { any character }, "*/" ;

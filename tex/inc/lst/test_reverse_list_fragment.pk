@@ -1,0 +1,19 @@
+int = 8.0
+pointer = 8.0
+node = (int, pointer)
+node_pool = 100 x node
+
+P5 reverse_list(V0[:node_pool], V1[:pointer]) -> R0[:pointer]
+  0 => Z0[:int]
+  V0[(V1 - 1).1] => Z1
+  W {
+    Z1 != 0 -> {
+      Z0 => V0[(V1 - 1).1]
+      V1 => Z0
+      Z1 => V1
+      V0[(V1 - 1).1] => Z1
+    }
+  }
+  Z0 => V0[(V1 - 1).1]
+  V1 => R0
+END

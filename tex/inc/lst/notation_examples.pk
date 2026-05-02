@@ -1,0 +1,22 @@
+bit = 0
+byte = 8.0
+pair = (8.0, 8.0)
+pool = 100 x pair
+
+P1 max(V0[:byte], V1[:byte]) -> R0[:byte]
+  V0[:byte] => Z0[:byte]
+  (Z0 < V1) -> V1 => Z0
+  Z0 => R0
+END
+
+P2 sum(V0[:byte]) -> R0[:byte]
+  0 => Z0[:byte]
+  FOR Z1 FROM 0 TO V0 {
+    Z0 + Z1 => Z0
+  }
+  Z0 => R0
+END
+
+P3 first_pair_field(V0[:pool], V1[:byte]) -> R0[:byte]
+  V0[(V1 - 1).0] => R0
+END

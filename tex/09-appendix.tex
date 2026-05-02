@@ -1,90 +1,9 @@
 \begin{appendices}
-\iffalse
 	\chapter{}
-	Приведены листинги примитивных объектов и некоторых комбинаторов.
-	\includelistingpretty
-	{Map/Objects/Impl/Box.cs}
-	{[Sharp]C}
-	{Класс параллелепипеда}
-	\includelistingpretty
-	{Map/Objects/Impl/Cylinder.cs}
-	{[Sharp]C}
-	{Класс сферы}
-    \includelistingpretty
-    {Map/Objects/Impl/Plane.cs}
-    {[Sharp]C}
-    {Класс плоскости}
-    \includelistingpretty
-    {Map/Objects/Impl/Sphere.cs}
-    {[Sharp]C}
-    {Класс сферы}
-    \includelistingpretty
-    {Map/Objects/Combinators/ObjectUnion.cs}
-    {[Sharp]C}
-    {Класс объединения}
-	\includelistingpretty
-	{Map/Objects/Combinators/ObjectDifference.cs}
-	{[Sharp]C}
-	{Класс разности}
-	\includelistingpretty
-	{Map/Objects/Combinators/ObjectIntersection.cs}
-	{[Sharp]C}
-	{Класс пересечения}
-	\includelistingpretty
-	{Map/Objects/Combinators/ObjectRoundUnion.cs}
-	{[Sharp]C}
-	{Класс скруглённого объединения}
-	\chapter{}
-	Приведены листинги реализаций некоторых моделей освещения.
-	\includelistingpretty
-	{Map/Light/LambertLight.cs}
-	{[Sharp]C}
-	{Класс модели освещения по Ламберту}
-	\includelistingpretty
-	{Map/Light/PhongLight.cs}
-	{[Sharp]C}
-	{Класс модели освещения Фонга}
-	\includelistingpretty
-	{Map/Light/BlinnLight.cs}
-	{[Sharp]C}
-	{Класс модели освещения Блинна-Фонга}
-	\includelistingpretty
-	{Map/Light/BlinnSoftAoLight.cs}
-	{[Sharp]C}
-	{Класс модели освещения Блинна-Фонга с мягкими тенями и окружающим затенением}
-	\chapter{}
-	Приведены листинги кодогенераторов основных функций отрисовки кроме генератора модели освещения, рассмотренного в технологической части.
-	\includelistingpretty
-	{Map/Generators/MapGenerator.cs}
-	{[Sharp]C}
-	{Класс кодогенератора ФРЗ}
-	\includelistingpretty
-	{Map/Generators/MaterialGenerator.cs}
-	{[Sharp]C}
-	{Класс кодогенератора функции определения материала}
-	\includelistingpretty
-	{Map/Generators/TransformGenerator.cs}
-	{[Sharp]C}
-	{Класс кодогенератора преобразований координат}
-	\includelistingpretty
-	{Map/Generators/UniformGenerator.cs}
-	{[Sharp]C}
-	{Класс кодогенератора изменяемых извне переменных шейдера}
-	\includelistingpretty
-	{Map/Generators/FragmentGenerator.cs}
-	{[Sharp]C}
-	{Класс кодогенератора итогового фрагментного шейдера}
-	\chapter{}
-	Приведены листинги привязки программы на GLSL к программе на \texttt{C\#}.
-	\includelistingpretty
-	{Render/RenderScene.cs}
-	{[Sharp]C}
-	{Класс настройки отображения сцены на экране}
-	\includelistingpretty
-	{Render/Shader.cs}
-	{[Sharp]C}
-	{Класс взаимодействия с шейдером}
-\fi
-	\chapter{}
-	Приведена презентация к курсовой работе
+	В приложении приведена грамматика линейной нотации языка Plankalkul в форме EBNF.
+	Она фиксирует структуру единицы трансляции, определения типов, определения программ, операторы, выражения, ссылки на переменные и inline-аннотации типов.
+
+	\includelisting
+	{plankalkul_ebnf.txt}
+	{Грамматика линейной нотации Plankalkul в форме EBNF}
 \end{appendices}
