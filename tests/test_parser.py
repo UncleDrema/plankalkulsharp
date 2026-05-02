@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from plankalkulsharp.my_ast.nodes import (
+from plankalkulsharp.plankalkul_ast.nodes import (
     ArrayType,
     Assignment,
     BinOp,

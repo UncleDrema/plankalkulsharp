@@ -21,15 +21,15 @@ program
 // --- Type Definitions (top-level) ---
 
 typeDef
-    : 'A' INT '=' typeExpr
+    : name=ID '=' typeExpr
     ;
 
 typeExpr
-    : 'S0'                                      # bitType
-    | 'S1' '.' INT                               # bitSeqType
+    : INT                                        # bitType
+    | INT '.' INT                                # bitSeqType
     | INT 'x' typeExpr                           # arrayType
     | '(' typeExpr (',' typeExpr)+ ')'           # recordType
-    | 'A' INT                                    # userType
+    | name=ID                                    # userType
     ;
 
 // --- Program Definitions ---
@@ -41,7 +41,7 @@ programDef
     ;
 
 programId
-    : 'P' INT ('.' INT)?
+    : 'P' INT
     ;
 
 paramList
@@ -155,7 +155,7 @@ argList
 //   V0[Z1.0 : A2]   — dynamic component chain + type
 
 varRef
-    : varKind INT ('[' component? ':' typeInline ']')?
+    : varKind INT ('[' component? (':' typeInline)? ']')?
     ;
 
 varKind
@@ -173,12 +173,13 @@ componentElem
     ;
 
 typeInline
-    : INT '.' typeInline                         # inlineArray
+    : INT '.' INT                                # inlineSequence
+    | INT 'x' typeInline                         # inlineArray
     | '(' typeInline (',' typeInline)+ ')'       # inlineRecord
-    | 'A' INT                                    # inlineUserType
-    | INT                                        # inlineTerminal
+    | name=ID                                    # inlineUserType
+    | INT                                        # inlineBitType
     ;
-// inlineTerminal: value 0 = S0 (bit). Semantic pass validates value.
+
 
 // ============================================================
 // Lexer Rules

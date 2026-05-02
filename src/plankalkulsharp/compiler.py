@@ -7,13 +7,12 @@ from pathlib import Path
 from antlr4 import CommonTokenStream, InputStream
 from antlr4.error.ErrorListener import ErrorListener
 
-from plankalkulsharp.my_ast.nodes import Program
-from plankalkulsharp.codegen.emitter import CILEmitter
-from plankalkulsharp.frontend.ast_builder import ASTBuilder
+from plankalkulsharp.plankalkul_ast.nodes import Program
+from plankalkulsharp.codegen.emitter import CILEmitter, EmitError
+from plankalkulsharp.frontend.ast_builder import ASTBuilder, AstError
 from plankalkulsharp.frontend.generated.PlankalkulLexer import PlankalkulLexer
 from plankalkulsharp.frontend.generated.PlankalkulParser import PlankalkulParser
 from plankalkulsharp.semantic.analyzer import Analyzer, SemanticError
-
 
 class CompileError(Exception):
     """Raised when compilation fails."""
@@ -60,7 +59,12 @@ def parse(source: str, filename: str = "<input>") -> Program:
         )
 
     builder = ASTBuilder()
-    return builder.visit(tree)
+    try:
+        return builder.visit(tree)
+    except AstError as e:
+        raise CompileError(
+            [f"{e.loc.line}:{e.loc.column}: {e}"]
+        )
 
 
 def check(program: Program, filename: str = "<input>") -> Analyzer:
@@ -80,14 +84,21 @@ def check(program: Program, filename: str = "<input>") -> Analyzer:
 def emit_il(program: Program, analyzer: Analyzer) -> str:
     """Generate CIL text assembly from a checked AST."""
     emitter = CILEmitter(analyzer)
-    return emitter.emit(program)
+    return emitter.emit()
 
 
-def compile_file(source_path: Path) -> Program:
+def compile_to_ast(source_path: Path) -> Program:
     """Parse a .pk file into an AST."""
     source = source_path.read_text(encoding="utf-8")
     return parse(source, filename=str(source_path))
 
+def compile_for_analyze(source_path: Path):
+    """Parse a .pk file into an AST and check it."""
+    source = source_path.read_text(encoding="utf-8")
+    filename = str(source_path)
+    program = parse(source, filename=filename)
+    analyzer = check(program, filename=filename)
+    analyzer.report()
 
 def compile_to_il(source_path: Path) -> str:
     """Full pipeline: parse → check → emit IL."""
@@ -95,4 +106,7 @@ def compile_to_il(source_path: Path) -> str:
     filename = str(source_path)
     program = parse(source, filename=filename)
     analyzer = check(program, filename=filename)
-    return emit_il(program, analyzer)
+    try:
+        return emit_il(program, analyzer)
+    except EmitError as e:
+        raise CompileError([str(e)]) from e

@@ -6,9 +6,11 @@ produce the plankalkulsharp AST node hierarchy.
 
 from __future__ import annotations
 
-from antlr4 import ParserRuleContext
+from typing import Any
 
-from plankalkulsharp.my_ast.nodes import (
+from antlr4 import ParserRuleContext, RecognitionException
+
+from plankalkulsharp.plankalkul_ast.nodes import (
     ArrayType,
     Assignment,
     BinOp,
@@ -42,12 +44,15 @@ from plankalkulsharp.frontend.generated.PlankalkulParser import PlankalkulParser
 from plankalkulsharp.frontend.generated.PlankalkulVisitor import PlankalkulVisitor
 
 
+class AstError(Exception):
+    """Raised when compilation fails."""
+
+    def __init__(self, msg: str, loc: Loc):
+        self.loc = loc
+        super().__init__(msg)
+
 def _loc(ctx: ParserRuleContext) -> Loc:
     token = ctx.start
-    return Loc(line=token.line, column=token.column)
-
-
-def _loc_token(token) -> Loc:
     return Loc(line=token.line, column=token.column)
 
 
@@ -64,6 +69,9 @@ _COMP_OPS: dict[str, BinOp] = {
 
 class ASTBuilder(PlankalkulVisitor):
     """Visitor that transforms the ANTLR4 CST into a plankalkulsharp AST."""
+
+    def visit(self, ctx: Any) -> Any:
+        return super().visit(ctx)
 
     # ------------------------------------------------------------------
     # Program (root)
@@ -84,15 +92,17 @@ class ASTBuilder(PlankalkulVisitor):
     # ------------------------------------------------------------------
 
     def visitTypeDef(self, ctx: PlankalkulParser.TypeDefContext) -> TypeDef:
-        index = int(ctx.INT().getText())
         type_expr = self.visit(ctx.typeExpr())
-        return TypeDef(loc=_loc(ctx), index=index, type_expr=type_expr)
+        return TypeDef(loc=_loc(ctx), name=ctx.name.text, type_expr=type_expr)
 
     def visitBitType(self, ctx: PlankalkulParser.BitTypeContext) -> BitType:
-        return BitType(loc=_loc(ctx))
+        return self.visitBitType(ctx)
 
     def visitBitSeqType(self, ctx: PlankalkulParser.BitSeqTypeContext) -> BitSeqType:
-        length = int(ctx.INT().getText())
+        length = int(ctx.INT(0).getText())
+        bit_marker = int(ctx.INT(1).getText())
+        if bit_marker != 0:
+            raise AstError(f"Expected bit type '0' but got '{bit_marker}'", loc=_loc(ctx))
         return BitSeqType(loc=_loc(ctx), length=length)
 
     def visitArrayType(self, ctx: PlankalkulParser.ArrayTypeContext) -> ArrayType:
@@ -105,8 +115,7 @@ class ASTBuilder(PlankalkulVisitor):
         return RecordType(loc=_loc(ctx), fields=fields)
 
     def visitUserType(self, ctx: PlankalkulParser.UserTypeContext) -> UserType:
-        index = int(ctx.INT().getText())
-        return UserType(loc=_loc(ctx), index=index)
+        return UserType(loc=_loc(ctx), name=ctx.name.text)
 
     # ------------------------------------------------------------------
     # Program definitions
@@ -114,9 +123,7 @@ class ASTBuilder(PlankalkulVisitor):
 
     def visitProgramDef(self, ctx: PlankalkulParser.ProgramDefContext) -> ProgramDef:
         pid = ctx.programId()
-        ints = pid.INT()
-        number = int(ints[0].getText())
-        sub_number = int(ints[1].getText()) if len(ints) > 1 else None
+        number = int(pid.INT().getText())
 
         name = ctx.name.text if ctx.name else None
         params = self._visit_param_list(ctx.paramList())
@@ -126,7 +133,6 @@ class ASTBuilder(PlankalkulVisitor):
         return ProgramDef(
             loc=_loc(ctx),
             number=number,
-            sub_number=sub_number,
             name=name,
             params=tuple(params),
             results=tuple(results),
@@ -299,10 +305,8 @@ class ASTBuilder(PlankalkulVisitor):
             name = ctx.ID().getText()
         else:
             pid = ctx.programId()
-            ints = pid.INT()
-            name = f"P{ints[0].getText()}"
-            if len(ints) > 1:
-                name += f".{ints[1].getText()}"
+            number = int(pid.INT().getText())
+            name = f"P{number}"
 
         arg_list = ctx.argList()
         args = tuple(self.visit(e) for e in arg_list.expr()) if arg_list.expr() else ()
@@ -353,15 +357,23 @@ class ASTBuilder(PlankalkulVisitor):
         return RecordType(loc=_loc(ctx), fields=fields)
 
     def visitInlineUserType(self, ctx: PlankalkulParser.InlineUserTypeContext) -> UserType:
-        index = int(ctx.INT().getText())
-        return UserType(loc=_loc(ctx), index=index)
+        return UserType(loc=_loc(ctx), name=ctx.name.text)
 
-    def visitInlineTerminal(self, ctx: PlankalkulParser.InlineTerminalContext) -> TypeNode:
+    def visitInlineSequence(self, ctx:PlankalkulParser.InlineSequenceContext):
+        size = int(ctx.INT(0).getText())
+        bit_marker = int(ctx.INT(1).getText())
+        if bit_marker != 0:
+            raise AstError(f"Expected bit type '0' but got '{bit_marker}'", loc=_loc(ctx))
+        return BitSeqType(loc=_loc(ctx), length=size)
+
+    def visitInlineBitType(self, ctx: PlankalkulParser.InlineBitTypeContext) -> TypeNode:
+        return self.visitBitType(ctx)
+
+    def visitBitType(self, ctx: PlankalkulParser.BitTypeContext | PlankalkulParser.InlineBitTypeContext) -> BitType:
         value = int(ctx.INT().getText())
-        if value == 0:
-            return BitType(loc=_loc(ctx))
-        # Non-zero terminal typically means S1·value (bit sequence)
-        return BitSeqType(loc=_loc(ctx), length=value)
+        if value != 0:
+            raise AstError(f"Expected bit type '0' but got '{value}'", loc=_loc(ctx))
+        return BitType(loc=_loc(ctx))
 
     # ------------------------------------------------------------------
     # Component access (Berlin-style: inside brackets)

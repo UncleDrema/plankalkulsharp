@@ -239,6 +239,11 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PlankalkulParser#inlineSequence.
+    def visitInlineSequence(self, ctx:PlankalkulParser.InlineSequenceContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PlankalkulParser#inlineArray.
     def visitInlineArray(self, ctx:PlankalkulParser.InlineArrayContext):
         return self.visitChildren(ctx)
@@ -254,8 +259,8 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PlankalkulParser#inlineTerminal.
-    def visitInlineTerminal(self, ctx:PlankalkulParser.InlineTerminalContext):
+    # Visit a parse tree produced by PlankalkulParser#inlineBitType.
+    def visitInlineBitType(self, ctx:PlankalkulParser.InlineBitTypeContext):
         return self.visitChildren(ctx)
 
 

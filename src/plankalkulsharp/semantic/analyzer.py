@@ -8,8 +8,11 @@ Reports all errors without stopping at the first one.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
-from plankalkulsharp.my_ast.nodes import (
+from pluggy import Result
+
+from plankalkulsharp.plankalkul_ast.nodes import (
     ArrayType,
     Assignment,
     BinOp,
@@ -57,25 +60,24 @@ class SemanticError(Exception):
 
 @dataclass(frozen=True)
 class ResolvedBit:
-    """S0 — single bit."""
-    pass
+    """0 — single bit."""
 
     def __str__(self) -> str:
-        return "S0"
+        return "0"
 
 
 @dataclass(frozen=True)
 class ResolvedBitSeq:
-    """S1·n — bit sequence."""
+    """n.0 — bit sequence."""
     length: int
 
     def __str__(self) -> str:
-        return f"S1.{self.length}"
+        return f"{self.length}.0"
 
 
 @dataclass(frozen=True)
 class ResolvedArray:
-    """n × T."""
+    """n x T."""
     size: int
     element: ResolvedType
 
@@ -112,11 +114,16 @@ class VarSymbol:
 
 @dataclass
 class ProgramSymbol:
+    key: str
     number: int
-    sub_number: int | None
     name: str | None
     params: list[ResolvedType]
     results: list[ResolvedType]
+    ast: ProgramDef
+    scope: Scope
+
+    def __repr__(self):
+        return f"P{self.number} {self.name} takes {self.params} results in {self.results} uses {self.scope.vars}"
 
 
 @dataclass
@@ -152,12 +159,19 @@ class Analyzer:
 
     def __init__(self) -> None:
         self.errors: list[str] = []
-        self.type_defs: dict[int, ResolvedType] = {}
-        self.programs: dict[str, ProgramSymbol] = {}  # key: "P<n>" or "P<n>.<m>"
+        self.warnings: list[str] = []
+        self.type_defs: dict[str, ResolvedType] = {}
+        self.programs: dict[str, ProgramSymbol] = {}
         self._scope: Scope | None = None
-        self._current_program_key: str | None = None
 
     # -- public interface ---------------------------------------------------
+
+    def report(self) -> None:
+        """Print the analyzer report."""
+        print('Errors:', self.errors)
+        print('Warnings:', self.warnings)
+        print('Type defs:', self.type_defs)
+        print('Programs:', self.programs)
 
     def analyze(self, program: Program) -> None:
         """Run semantic analysis. Raises SemanticError on failure."""
@@ -179,6 +193,9 @@ class Analyzer:
     def _error(self, loc: Loc, msg: str) -> None:
         self.errors.append(f"{loc}: {msg}")
 
+    def _warn(self, loc: Loc, msg: str) -> None:
+        self.warnings.append(f"{loc}: {msg}")
+
     # -- type resolution ----------------------------------------------------
 
     def resolve_type_node(self, tn: TypeNode) -> ResolvedType | None:
@@ -191,9 +208,6 @@ class Analyzer:
             elem = self.resolve_type_node(tn.element_type)
             if elem is None:
                 return None
-            # n × S0 ≡ S1·n (Plankalkül convention)
-            if isinstance(elem, ResolvedBit):
-                return ResolvedBitSeq(tn.size)
             return ResolvedArray(tn.size, elem)
         if isinstance(tn, RecordType):
             fields: list[ResolvedType] = []
@@ -204,28 +218,26 @@ class Analyzer:
                 fields.append(r)
             return ResolvedRecord(tuple(fields))
         if isinstance(tn, UserType):
-            if tn.index not in self.type_defs:
-                self._error(tn.loc, f"undefined type A{tn.index}")
+            if tn.name not in self.type_defs:
+                self._error(tn.loc, f"undefined type {tn.name}")
                 return None
-            return self.type_defs[tn.index]
+            return self.type_defs[tn.name]
         self._error(tn.loc, f"unknown type node: {type(tn).__name__}")
         return None
 
     # -- Phase 1: type definitions ------------------------------------------
 
     def _register_type_def(self, td: TypeDef) -> None:
-        if td.index in self.type_defs:
-            self._error(td.loc, f"duplicate type definition A{td.index}")
+        if td.name in self.type_defs:
+            self._error(td.loc, f"duplicate type definition {td.name}")
             return
         resolved = self.resolve_type_node(td.type_expr)
         if resolved is not None:
-            self.type_defs[td.index] = resolved
+            self.type_defs[td.name] = resolved
 
     # -- Phase 2: program signatures ----------------------------------------
 
     def _program_key(self, pd: ProgramDef) -> str:
-        if pd.sub_number is not None:
-            return f"P{pd.number}.{pd.sub_number}"
         return f"P{pd.number}"
 
     def _register_program_sig(self, pd: ProgramDef) -> None:
@@ -236,6 +248,9 @@ class Analyzer:
 
         param_types: list[ResolvedType] = []
         for v in pd.params:
+            if v.kind != 'V':
+                self._error(v.loc, f"param {v.kind}{v.index} should be of kind V")
+                continue
             if v.type_ann is None:
                 self._error(v.loc, f"parameter {v.kind}{v.index} missing type annotation")
                 continue
@@ -245,6 +260,9 @@ class Analyzer:
 
         result_types: list[ResolvedType] = []
         for v in pd.results:
+            if v.kind != 'R':
+                self._error(v.loc, f"param {v.kind}{v.index} should be of kind R")
+                continue
             if v.type_ann is None:
                 self._error(v.loc, f"result {v.kind}{v.index} missing type annotation")
                 continue
@@ -253,11 +271,13 @@ class Analyzer:
                 result_types.append(rt)
 
         self.programs[key] = ProgramSymbol(
+            key=key,
             number=pd.number,
-            sub_number=pd.sub_number,
             name=pd.name,
             params=param_types,
             results=result_types,
+            ast=pd,
+            scope=None
         )
 
     # -- Phase 3: program body check ----------------------------------------
@@ -265,20 +285,16 @@ class Analyzer:
     def _check_program(self, pd: ProgramDef) -> None:
         scope = Scope()
         self._scope = scope
-        self._current_program_key = self._program_key(pd)
+        self.programs[self._program_key(pd)].scope = scope
 
         # Define params (V variables)
         for v in pd.params:
-            if v.type_ann is None:
-                continue
             rt = self.resolve_type_node(v.type_ann)
             if rt is not None:
                 scope.define(v.kind, v.index, rt)
 
         # Define results (R variables)
         for v in pd.results:
-            if v.type_ann is None:
-                continue
             rt = self.resolve_type_node(v.type_ann)
             if rt is not None:
                 scope.define(v.kind, v.index, rt)
@@ -288,7 +304,6 @@ class Analyzer:
             self._check_stmt(stmt)
 
         self._scope = None
-        self._current_program_key = None
 
     # -- statement checking -------------------------------------------------
 
@@ -304,11 +319,13 @@ class Analyzer:
             self._check_for_loop(stmt)
 
     def _check_assignment(self, stmt: Assignment) -> None:
-        val_type = self._check_expr(stmt.value)
-        tgt_type = self._resolve_var_type(stmt.target)
+        value = stmt.value
+        target = stmt.target
+        val_type = self._check_expr(value)
+        tgt_type = self._resolve_var_type(target)
 
         # C-variable immutability: only one assignment allowed
-        if stmt.target.kind == "C" and self._scope is not None:
+        if target.kind == "C" and self._scope is not None:
             if not self._scope.mark_c_assigned(stmt.target.index):
                 self._error(
                     stmt.loc,
@@ -322,23 +339,47 @@ class Analyzer:
                     stmt.loc,
                     f"type mismatch in assignment: {val_type} cannot be assigned to {tgt_type}",
                 )
+        if val_type is not None and tgt_type is None:
+            self._scope.define(target.kind, target.index, val_type)
 
     def _check_guarded(self, stmt: GuardedStmt) -> None:
         cond_type = self._check_expr(stmt.condition)
         if cond_type is not None and not isinstance(cond_type, ResolvedBit):
             self._error(
                 stmt.condition.loc,
-                f"guard condition must be S0 (bit/boolean), got {cond_type}",
+                f"guard condition must be 0 (bit/boolean), got {cond_type}",
             )
         for s in stmt.body:
             self._check_stmt(s)
 
     def _check_for_loop(self, stmt: ForLoop) -> None:
-        # The loop variable must be an integer type (bit-sequence)
-        var_type = self._resolve_var_type(stmt.var)
+        # The loop variable must be a new variable
+        looked_up = self._scope.lookup(stmt.var.kind, stmt.var.index)
+        if looked_up is not None:
+            self._error(
+                stmt.loc,
+                "forloop variable is already declared previously",
+            )
 
         start_type = self._check_expr(stmt.start)
         end_type = self._check_expr(stmt.end)
+        if start_type is None or end_type is None:
+            if start_type is None:
+                self._error(stmt.loc, f"start type is undefined in {stmt.start}")
+            if end_type is None:
+                self._error(stmt.loc, f"end type is undefined in {stmt.end}")
+        else:
+            both_bitseq = True
+            if not isinstance(start_type, ResolvedBitSeq) and not isinstance(start_type, ResolvedBit):
+                both_bitseq = False
+                self._error(stmt.loc, f"forloop range must be a bit sequence or bit in {stmt.start}, but is {start_type}")
+            if not isinstance(end_type, ResolvedBitSeq) and not isinstance(end_type, ResolvedBit):
+                both_bitseq = False
+                self._error(stmt.loc, f"forloop range must be a bit sequence or bit in {stmt.end}, but is {end_type}")
+            if both_bitseq:
+                start_len = 1 if isinstance(start_type, ResolvedBit) else start_type.length
+                end_len = 1 if isinstance(end_type, ResolvedBit) else end_type.length
+                self._scope.define(stmt.var.kind, stmt.var.index, ResolvedBitSeq(max(start_len, end_len)))
 
         for s in stmt.body:
             self._check_stmt(s)
@@ -347,14 +388,19 @@ class Analyzer:
 
     def _check_expr(self, expr: ExprNode) -> ResolvedType | None:
         if isinstance(expr, IntLiteral):
-            # Integer literals: infer as S1·8 (byte) by default
-            return ResolvedBitSeq(8)
+            value = expr.value
+            if value == 0 or value == 1:
+                return ResolvedBit()
+            return ResolvedBitSeq(value.bit_length())
         if isinstance(expr, BoolLiteral):
             return ResolvedBit()
         if isinstance(expr, BitSeqLiteral):
             return ResolvedBitSeq(len(expr.bits))
         if isinstance(expr, VarRef):
-            return self._resolve_var_type(expr)
+            res = self._resolve_var_type(expr)
+            if res is None:
+                self._error(expr.loc, f"unknown variable type: {expr}")
+            return res
         if isinstance(expr, BinaryExpr):
             return self._check_binary(expr)
         if isinstance(expr, UnaryExpr):
@@ -375,16 +421,70 @@ class Analyzer:
         if expr.op in (BinOp.EQ, BinOp.NEQ, BinOp.LT, BinOp.GT, BinOp.LE, BinOp.GE):
             return ResolvedBit()
 
-        # Boolean operators require S0 operands, return S0
+        # Boolean operators require 0 operands, return 0
         if expr.op in (BinOp.AND, BinOp.OR):
             if not isinstance(left, ResolvedBit):
-                self._error(expr.left.loc, f"boolean operator requires S0, got {left}")
+                self._error(expr.left.loc, f"boolean operator requires 0, got {left}")
             if not isinstance(right, ResolvedBit):
-                self._error(expr.right.loc, f"boolean operator requires S0, got {right}")
+                self._error(expr.right.loc, f"boolean operator requires 0, got {right}")
             return ResolvedBit()
 
-        # Arithmetic operators: operands should be bit-sequences (integers)
-        return left  # result has same type as left operand
+        both_bit_seqs = True
+        if not isinstance(left, ResolvedBitSeq) and not isinstance(left, ResolvedBit):
+            self._error(expr.left.loc, f"arithmetic operator requires bit sequence or bit, got {left}")
+            both_bit_seqs = False
+        if not isinstance(right, ResolvedBitSeq) and not isinstance(right, ResolvedBit):
+            self._error(expr.right.loc, f"arithmetic operator requires bit sequence or bit, got {right}")
+            both_bit_seqs = False
+        if not both_bit_seqs:
+            return None
+        left_size = left.length if isinstance(left, ResolvedBitSeq) else 1
+        right_size = right.length if isinstance(right, ResolvedBitSeq) else 1
+        return ResolvedBitSeq(self._arithmetic_result_size(expr, left_size, right_size))
+
+    def _arithmetic_result_size(self, expr: BinaryExpr, left_size: int, right_size: int) -> int:
+        """Определяет размер результата арифметической операции в битах.
+
+        Все операции беззнаковые, с сохранением полного результата.
+        При присваивании в переменную меньшего размера будет происходить
+        автоматическое обрезание (маскирование).
+        """
+        op = expr.op
+
+        if op == BinOp.ADD:
+            # Беззнаковое сложение: может быть перенос в старший бит
+            # Пример: 0xFF + 0xFF = 0x1FE (нужно 9 бит для 8-битных операндов)
+            return max(left_size, right_size) + 1
+
+        elif op == BinOp.SUB:
+            # Беззнаковое вычитание: результат всегда в диапазоне [0, max(A,B)]
+            # Нужен дополнительный бит для представления заимствования
+            # Пример: 0 - 1 = 255 в 8 битах, но для полного результата нужно 9 бит
+            return max(left_size, right_size) + 1
+
+        elif op == BinOp.MUL:
+            # Беззнаковое умножение: размер = сумма размеров
+            # Пример: 3 бита * 3 бита = максимум 7*7=49, что требует 6 бит
+            return left_size + right_size
+
+        elif op == BinOp.DIV:
+            # Деление: размер частного равен размеру делимого
+            # Делитель может быть меньше, но результат не превышает делимое
+            return left_size
+
+        elif op == BinOp.POW:
+            # Возведение в степень: left_size * right_size бит (теоретически)
+            # Пример: 2 бита (основание) ^ 3 бита (степень) = макс 3^7=2187 = 12 бит
+            # Но на практике это много, ограничиваем разумным пределом в 64 бита
+            result = left_size * right_size
+            if result > 64:
+                self._warn(expr.loc, f"Power operation result size {result} bits exceeds 64, truncating")
+                return 64
+            return result
+
+        else:
+            self._error(expr.loc, f"Unsupported arithmetic operation: {op}")
+            return 0
 
     def _check_unary(self, expr: UnaryExpr) -> ResolvedType | None:
         operand = self._check_expr(expr.operand)
@@ -392,7 +492,7 @@ class Analyzer:
             return None
         if expr.op == UnOp.NOT:
             if not isinstance(operand, ResolvedBit):
-                self._error(expr.operand.loc, f"NOT requires S0, got {operand}")
+                self._error(expr.operand.loc, f"NOT requires 0, got {operand}")
             return ResolvedBit()
         if expr.op == UnOp.NEG:
             return operand
@@ -414,7 +514,7 @@ class Analyzer:
                     break
 
         if psym is None:
-            self._error(expr.loc, f"undefined program or function '{name}'")
+            self._error(expr.loc, f"undefined program '{name}'")
             return None
 
         # Check argument count
@@ -437,9 +537,7 @@ class Analyzer:
         # Return type: single result directly, multi-result as record
         if len(psym.results) > 1:
             return ResolvedRecord(tuple(psym.results))
-        if psym.results:
-            return psym.results[0]
-        return ResolvedBit()
+        return psym.results[0]
 
     # -- variable type resolution -------------------------------------------
 
@@ -447,43 +545,30 @@ class Analyzer:
         assert self._scope is not None
         sym = self._scope.lookup(ref.kind, ref.index)
 
+        # Если символ не найден
         if sym is None:
-            # Cross-program R<N>: reference to a parameterless program's result
-            if ref.kind == "R":
-                program_key = f"P{ref.index}"
-                if (
-                    program_key != self._current_program_key
-                    and program_key in self.programs
-                ):
-                    cprog = self.programs[program_key]
-                    if len(cprog.params) == 0 and cprog.results:
-                        if len(cprog.results) > 1:
-                            base = ResolvedRecord(tuple(cprog.results))
-                        else:
-                            base = cprog.results[0]
-                        return self._apply_component_access(
-                            base, ref.components, ref.loc
-                        )
-
-            # First assignment = declaration: define with type annotation
+            # При первом обращении смотрим указанный inline тип
             if ref.type_ann is not None:
                 rt = self.resolve_type_node(ref.type_ann)
                 if rt is not None:
                     self._scope.define(ref.kind, ref.index, rt)
-                    return self._apply_component_access(rt, ref.components, ref.loc)
+                    return self._apply_component_access(rt, ref)
                 return None
-            self._error(ref.loc, f"undefined variable {ref.kind}{ref.index} (no type annotation)")
             return None
+        elif ref.type_ann is not None:
+            rt = self.resolve_type_node(ref.type_ann)
+            if rt != sym.resolved_type:
+                self._warn(ref.loc, f"ignore type {rt} because type {sym.resolved_type} was previously resolved")
 
         base_type = sym.resolved_type
-        return self._apply_component_access(base_type, ref.components, ref.loc)
+        return self._apply_component_access(base_type, ref)
 
     def _apply_component_access(
         self,
         base: ResolvedType,
-        components: tuple[ComponentAccess, ...],
-        loc: Loc,
+        ref: VarRef,
     ) -> ResolvedType | None:
+        components = ref.components
         current = base
         for comp in components:
             if isinstance(comp, StaticAccess):
@@ -520,24 +605,24 @@ class Analyzer:
     @staticmethod
     def _types_compatible(source: ResolvedType, target: ResolvedType) -> bool:
         """Check structural type compatibility for assignment."""
-        # Integer literals (S1·n) are compatible with any bit-sequence
+        # Последовательности бит совместимы
         if isinstance(source, ResolvedBitSeq) and isinstance(target, ResolvedBitSeq):
             return True
-        # S0 ↔ S0
+        # 0 <-> S
         if isinstance(source, ResolvedBit) and isinstance(target, ResolvedBit):
             return True
-        # Integer literal or bit-sequence → S0 (0/1 are valid bit values)
+        # Последовательности бит и биты совместимы
         if isinstance(source, ResolvedBitSeq) and isinstance(target, ResolvedBit):
             return True
-        # S0 → bit-sequence (widen bit to integer)
+        # Биты и послледовательности бит совместимы
         if isinstance(source, ResolvedBit) and isinstance(target, ResolvedBitSeq):
             return True
-        # Array: same size and compatible elements
+        # Массивы одного размера и совместимых типов совместимы
         if isinstance(source, ResolvedArray) and isinstance(target, ResolvedArray):
             return source.size == target.size and Analyzer._types_compatible(
                 source.element, target.element
             )
-        # Record: same number of fields, each compatible
+        # Структуры одного размера и с совместимыми типами совместимы
         if isinstance(source, ResolvedRecord) and isinstance(target, ResolvedRecord):
             if len(source.fields) != len(target.fields):
                 return False

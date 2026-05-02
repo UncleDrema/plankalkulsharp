@@ -6,8 +6,8 @@ The AST is produced by the frontend's AST builder from the ANTLR4 parse tree.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum, auto, StrEnum
 
 
 # ---------------------------------------------------------------------------
@@ -36,14 +36,17 @@ class TypeNode:
 
 @dataclass(frozen=True)
 class BitType(TypeNode):
-    """S0 — single bit (Boolean)."""
-    pass
+    """0 — single bit (Boolean)."""
+    def __str__(self):
+        return "0"
 
 
 @dataclass(frozen=True)
 class BitSeqType(TypeNode):
-    """S1·n — bit sequence of length n."""
+    """n.0 — bit sequence of length n."""
     length: int
+    def __str__(self):
+        return f"{self.length}.0"
 
 
 @dataclass(frozen=True)
@@ -51,43 +54,49 @@ class ArrayType(TypeNode):
     """n × T — array of n elements of type T."""
     size: int
     element_type: TypeNode
+    def __str__(self):
+        return f"{self.size}x{self.element_type}"
 
 
 @dataclass(frozen=True)
 class RecordType(TypeNode):
     """(T1, T2, ...) — tuple/record type."""
     fields: tuple[TypeNode, ...]
+    def __str__(self):
+        return f"({','.join(map(str, self.fields))})"
 
 
 @dataclass(frozen=True)
 class UserType(TypeNode):
-    """A<n> — reference to user-defined type."""
-    index: int
+    """<name> — reference to user-defined type."""
+    name: str
+    def __str__(self):
+        return f"{self.name}"
 
 
 # ---------------------------------------------------------------------------
 # Expressions
 # ---------------------------------------------------------------------------
 
-class BinOp(Enum):
-    ADD = auto()
-    SUB = auto()
-    MUL = auto()
-    DIV = auto()
-    POW = auto()
-    AND = auto()
-    OR = auto()
-    EQ = auto()
-    NEQ = auto()
-    LT = auto()
-    GT = auto()
-    LE = auto()
-    GE = auto()
+class BinOp(StrEnum):
+    ADD = '+'
+    SUB = '-'
+    MUL = '*'
+    DIV = '/'
+    POW = '**'
+    AND = '&'
+    OR = '|'
+    EQ = '='
+    NEQ = '!='
+    LT = '<'
+    GT = '>'
+    LE = '<='
+    GE = '>='
 
 
-class UnOp(Enum):
-    NOT = auto()
-    NEG = auto()
+class UnOp(StrEnum):
+    NOT = '~'
+    NEG = '-'
 
 
 @dataclass(frozen=True)
@@ -101,17 +110,29 @@ class IntLiteral(ExprNode):
     """Integer literal (decimal)."""
     value: int
 
+    def __str__(self) -> str:
+        return str(self.value)
+
 
 @dataclass(frozen=True)
 class BoolLiteral(ExprNode):
     """Boolean literal (L = true, 0 = false in S0 context)."""
     value: bool
 
+    def __str__(self) -> str:
+        return "L" if self.value else "0"
+
 
 @dataclass(frozen=True)
 class BitSeqLiteral(ExprNode):
     """Bit sequence literal like L00L."""
     bits: tuple[bool, ...]
+
+    def __str__(self):
+        res = ''
+        for b in self.bits:
+            res += str(BoolLiteral(b))
+        return res
 
 
 @dataclass(frozen=True)
@@ -121,6 +142,10 @@ class VarRef(ExprNode):
     index: int
     type_ann: TypeNode | None = None
     components: tuple[ComponentAccess, ...] = ()
+    def __str__(self) -> str:
+        if len(self.components) == 0:
+            return f"{self.kind}{self.index}"
+        return f"{self.kind}{self.index}[{'.'.join(map(str, self.components))}]"
 
 
 @dataclass(frozen=True)
@@ -134,11 +159,17 @@ class StaticAccess(ComponentAccess):
     """Static component access: .n"""
     index: int
 
+    def __str__(self):
+        return str(self.index)
+
 
 @dataclass(frozen=True)
 class DynamicAccess(ComponentAccess):
     """Dynamic component access: [expr]"""
     expr: ExprNode
+
+    def __str__(self):
+        return f'{self.expr}'
 
 
 @dataclass(frozen=True)
@@ -147,6 +178,9 @@ class BinaryExpr(ExprNode):
     op: BinOp
     left: ExprNode
     right: ExprNode
+
+    def __str__(self) -> str:
+        return f"{self.left} {self.op} {self.right}"
 
 
 @dataclass(frozen=True)
@@ -159,7 +193,7 @@ class UnaryExpr(ExprNode):
 @dataclass(frozen=True)
 class FuncCall(ExprNode):
     """Function/program call: name(args)."""
-    name: str           # function name or "P<n>" / "P<n>.<m>"
+    name: str           # function name or "P<n>"
     args: tuple[ExprNode, ...]
 
 
@@ -178,6 +212,9 @@ class Assignment(StmtNode):
     """Assignment: expr -> varRef."""
     value: ExprNode
     target: VarRef
+
+    def __str__(self):
+        return f"{self.value} => {self.target}"
 
 
 @dataclass(frozen=True)
@@ -208,9 +245,9 @@ class ForLoop(StmtNode):
 
 @dataclass(frozen=True)
 class TypeDef:
-    """User-defined type: A<n> = typeExpr."""
+    """User-defined type: <name> = typeExpr."""
     loc: Loc
-    index: int
+    name: str
     type_expr: TypeNode
 
 
@@ -219,7 +256,6 @@ class ProgramDef:
     """Program definition: P<n> name (...) -> result ... END."""
     loc: Loc
     number: int
-    sub_number: int | None   # for subprograms P5.7
     name: str | None
     params: tuple[VarRef, ...]
     results: tuple[VarRef, ...]

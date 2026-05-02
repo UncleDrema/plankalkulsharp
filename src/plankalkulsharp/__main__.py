@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from plankalkulsharp.compiler import CompileError, compile_file, compile_to_il
+from plankalkulsharp.compiler import CompileError, compile_to_ast, compile_to_il, compile_for_analyze
 
 
 def _dump_ast(node, indent: int = 0) -> str:
@@ -52,6 +52,10 @@ def main(argv: list[str] | None = None) -> int:
     compile_cmd.add_argument("-o", "--output", type=Path, help="Output .il file path")
     compile_cmd.add_argument("--emit-il", action="store_true", help="Stop after emitting .il")
 
+    # --- analyze ---
+    analyze_cmd = subparsers.add_parser("analyze", help="Analyze a .pk file")
+    analyze_cmd.add_argument("file", type=Path, help="Plankalkül source file (.pk)")
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -62,13 +66,15 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_parse(args)
     if args.command == "compile":
         return _cmd_compile(args)
+    if args.command == "analyze":
+        return _cmd_analyze(args)
 
     return 1
 
 
 def _cmd_parse(args) -> int:
     try:
-        ast = compile_file(args.file)
+        ast = compile_to_ast(args.file)
     except CompileError as e:
         for err in e.errors:
             print(f"error: {err}", file=sys.stderr)
@@ -80,6 +86,17 @@ def _cmd_parse(args) -> int:
     print(_dump_ast(ast))
     return 0
 
+def _cmd_analyze(args) -> int:
+    try:
+        compile_for_analyze(args.file)
+    except CompileError as e:
+        for err in e.errors:
+            print(f"error: {err}", file=sys.stderr)
+        return 1
+    except FileNotFoundError:
+        print(f"error: file not found: {args.file}", file=sys.stderr)
+        return 1
+    return 0
 
 def _cmd_compile(args) -> int:
     try:
