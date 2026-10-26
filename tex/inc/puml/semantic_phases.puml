@@ -1,0 +1,48 @@
+@startuml semantic_phases
+title Фазы семантического анализа
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #455A6E
+skinparam activity {
+  BorderColor #23374B
+  BackgroundColor #EBF1F7
+  FontColor #1A232D
+}
+
+start
+:Регистрация пользовательских типов;
+note right
+  Имена типов связываются
+  с типовыми выражениями
+end note
+
+:Разрешение структурных типов;
+note right
+  bit, bit sequence,
+  array, record
+end note
+
+:Регистрация сигнатур программ;
+note right
+  P<number>, имя,
+  параметры V, результаты R
+end note
+
+:Проверка тел программ;
+fork
+  :Проверка присваиваний;
+fork again
+  :Проверка guard и циклов;
+fork again
+  :Проверка вызовов программ;
+fork again
+  :Проверка компонентного доступа;
+end fork
+
+:Накопление ошибок и предупреждений;
+stop
+
+@enduml

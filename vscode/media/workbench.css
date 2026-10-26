@@ -1,0 +1,309 @@
+:root {
+  color-scheme: light dark;
+}
+body {
+  margin: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+main {
+  padding: 16px;
+}
+h1 {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+h2 {
+  font-size: 15px;
+  margin: 18px 0 8px;
+}
+button,
+input,
+select {
+  font: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  padding: 6px 9px;
+}
+button {
+  cursor: pointer;
+}
+button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button.active {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+input[type="number"] {
+  width: 86px;
+}
+.status {
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+.error {
+  color: var(--vscode-errorForeground);
+}
+pre,
+code,
+.hex {
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+pre {
+  overflow: auto;
+  white-space: pre;
+  max-height: 45vh;
+  padding: 10px;
+  background: var(--vscode-textCodeBlock-background);
+}
+.hidden {
+  display: none !important;
+}
+.stale {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.formula {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 8px;
+  margin: 4px 0;
+}
+.formula.selected {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-editor-selectionHighlightBackground);
+}
+.formula.executing {
+  background: var(
+    --vscode-editor-stackFrameHighlightBackground,
+    var(--vscode-editor-selectionHighlightBackground)
+  );
+  border-color: var(--vscode-focusBorder);
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.formula table {
+  border-collapse: collapse;
+  font-family:
+    "Cambria Math", Cambria, "STIX Two Math", "Times New Roman", serif;
+  font-variant-ligatures: none;
+  font-feature-settings:
+    "liga" 0,
+    "calt" 0;
+  font-size: 20px;
+  line-height: 1.4;
+}
+.formula td:not([data-row="text"]) {
+  font-size: 14px;
+}
+.formula table table {
+  font-size: 0.8em;
+}
+.formula sup {
+  font-size: 0.7em;
+  line-height: 0;
+  vertical-align: super;
+}
+.conditional-arrow {
+  width: 1.5em;
+  height: 1.2em;
+  vertical-align: middle;
+}
+.formula td {
+  padding: 1px 5px;
+  white-space: nowrap;
+  text-align: center;
+}
+.formula th {
+  font: 10px var(--vscode-font-family);
+  color: var(--vscode-descriptionForeground);
+  padding-right: 8px;
+}
+.formula .extension {
+  color: var(--vscode-editorWarning-foreground);
+}
+.depth1 {
+  margin-left: 16px;
+}
+.depth2 {
+  margin-left: 32px;
+}
+.depth3 {
+  margin-left: 48px;
+}
+.depth4 {
+  margin-left: 64px;
+}
+.depth5 {
+  margin-left: 80px;
+}
+.caption {
+  color: var(--vscode-descriptionForeground);
+  font: 12px var(--vscode-font-family);
+  margin-bottom: 6px;
+}
+.empty {
+  padding: 24px 0;
+  max-width: 65ch;
+  line-height: 1.6;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  gap: 16px;
+}
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.plans button {
+  text-align: left;
+}
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.table td,
+.table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  text-align: left;
+  white-space: nowrap;
+}
+.table th {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+.scroll {
+  overflow: auto;
+  max-height: 40vh;
+}
+.selectedObject {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+.hex {
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.hex td {
+  padding: 3px 5px;
+}
+.hex th {
+  padding-right: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+.owner0 {
+  background: color-mix(in srgb, #3d8fa6 25%, transparent);
+}
+.owner1 {
+  background: color-mix(in srgb, #b78e38 25%, transparent);
+}
+.owner2 {
+  background: color-mix(in srgb, #8f71b5 25%, transparent);
+}
+.owner3 {
+  background: color-mix(in srgb, #6caa60 25%, transparent);
+}
+.owner4 {
+  background: color-mix(in srgb, #c37883 25%, transparent);
+}
+.hex .chosen {
+  background: var(--vscode-editor-findMatchHighlightBackground);
+  outline: 1px solid var(--vscode-focusBorder);
+}
+.map {
+  width: 100%;
+  height: 36px;
+}
+.map .free {
+  fill: var(--vscode-input-background);
+  stroke: var(--vscode-panel-border);
+}
+.map .used {
+  fill: var(--vscode-charts-blue);
+  stroke: var(--vscode-editor-background);
+}
+.map rect {
+  cursor: pointer;
+}
+.stats {
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.tabs {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 8px;
+}
+.notice {
+  padding: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  line-height: 1.5;
+}
+@media (max-width: 550px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .plans {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  main {
+    padding: 10px;
+  }
+  .hex td {
+    padding: 3px 2px;
+  }
+}
+.launch-form {
+  align-items: end;
+}
+.launch-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.launch-form input[name="argumentsText"] {
+  width: 28ch;
+  max-width: 100%;
+}
+.launch-form input[type="number"] {
+  width: 15ch;
+}
+.launch-form label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+  padding-bottom: 6px;
+}

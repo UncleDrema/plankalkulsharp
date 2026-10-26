@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "plans": {
+    "reverse": {
+      "types": [
+        "item"
+      ],
+      "description": "Разворот списка",
+      "example": "reverse([2, 3, 4]) → [4, 3, 2]"
+    },
+    "Nr": {
+      "types": [
+        "item"
+      ],
+      "description": "Нумерация элементов с нуля",
+      "example": "Nr([7, 9]) → [(0, 7), (1, 9)]"
+    },
+    "Qz": {
+      "types": [
+        "item",
+        "other"
+      ],
+      "contracts": [
+        {
+          "kind": "equal_length",
+          "left": 0,
+          "right": 1
+        }
+      ],
+      "description": "Попарное объединение списков одинаковой длины",
+      "example": "Qz([1, 2], [7, 8]) → [(1, 7), (2, 8)]"
+    },
+    "Sp": {
+      "types": [
+        "item",
+        "selected"
+      ],
+      "static": [
+        {
+          "argument": 1,
+          "kind": "field",
+          "record": "item",
+          "bind": "selected",
+          "component": 0
+        }
+      ],
+      "description": "Выбор поля из каждой записи; номер поля — статический",
+      "example": "Sp([(1, 7), (2, 8)], 1) → [7, 8]"
+    },
+    "insert": {
+      "types": [
+        "item"
+      ],
+      "contracts": [
+        {
+          "kind": "position",
+          "list": 0,
+          "index": 1,
+          "allow_end": true
+        }
+      ],
+      "description": "Вставка перед указанной позицией; N разрешено для добавления в конец",
+      "example": "insert([2, 4], 1, 3) → [2, 3, 4]"
+    },
+    "remove": {
+      "types": [
+        "item"
+      ],
+      "contracts": [
+        {
+          "kind": "position",
+          "list": 0,
+          "index": 1,
+          "allow_end": false
+        }
+      ],
+      "description": "Удаление элемента по позиции от 0 до N−1",
+      "example": "remove([2, 3, 4], 1) → [2, 4]"
+    }
+  }
+}

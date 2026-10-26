@@ -1,12 +1,18 @@
-// Plankalkül Grammar for ANTLR4
-// Linear text notation for the plankalkulsharp compiler
+// ANTLR4 grammar for the implemented PlankalkulSharp text notation.
 //
 // Syntax:
 //     expr => varRef          assignment (Ergibt-Zeichen)
 //     expr -> guardBody       guard / conditional (Bedingung)
-// - Two type syntaxes: verbose (top-level defs) and compact (inline annotations).
-// - Lexer: uppercase single letters (V,Z,C,R,P,A,W,L,S) are implicit tokens;
-//   ID starts with lowercase only; BITSEQ requires ≥2 chars with at least one L.
+//
+// The grammar is the current syntax source of truth. Historical descriptions
+// in docs/ may cover notation or language features that the compiler does not
+// implement. Keep generated frontend files in sync with this file via
+// scripts/generate_parser.py (ANTLR 4.13.2).
+//
+// Types use lowercase aliases and numeric forms such as 0 and 8.0.
+// Uppercase single letters (V, Z, C, R, P, W, L) are
+// implicit tokens; IDs start with lowercase; BITSEQ has at least two
+// characters and contains at least one L.
 
 grammar Plankalkul;
 
@@ -27,9 +33,10 @@ typeDef
 typeExpr
     : INT                                        # bitType
     | INT '.' INT                                # bitSeqType
-    | INT 'x' typeExpr                           # arrayType
+    | (INT | '*') 'x' typeExpr                           # arrayType
     | '(' typeExpr (',' typeExpr)+ ')'           # recordType
     | name=ID                                    # userType
+    | '@' name=ID                                # refType
     ;
 
 // --- Program Definitions ---
@@ -67,9 +74,11 @@ statementList
 
 statement
     : expr '=>' varRef                           # assignStmt
+    | expr '=>' '@'                              # freeStmt
     | expr '->' guardBody                        # guardStmt
     | wLoop                                      # wLoopStmt
-    | forLoop                                    # forLoopStmt
+    | indexedLoop                                # indexedLoopStmt
+    | (expr '=>')? FIN                         # finStmt
     ;
 
 guardBody
@@ -81,8 +90,8 @@ wLoop
     : 'W' '{' statement+ '}'
     ;
 
-forLoop
-    : 'FOR' varRef 'FROM' expr 'TO' expr '{' statementList '}'
+indexedLoop
+    : INDEXED_W INDEX '(' expr (',' expr)? ')' '{' statementList '}'
     ;
 
 // --- Expressions (precedence climbing, low to high) ---
@@ -129,9 +138,14 @@ atom
     : INT                                        # intLiteral
     | 'L'                                        # trueLiteral
     | BITSEQ                                     # bitseqLiteral
+    | 'NIL'                                      # nilLiteral
+    | '@' name=ID                                # allocateAtom
     | funcCall                                   # funcCallAtom
+    | INDEX                                      # indexAtom
     | varRef                                     # varAtom
     | '(' expr ')'                               # parenExpr
+    | '[' argList ']'                            # listLiteral
+    | '(' expr (',' expr)+ ')'                   # recordLiteral
     ;
 
 // --- Function Call ---
@@ -139,7 +153,7 @@ atom
 // ID or programId ('P'), neither of which matches varKind (V/Z/C/R).
 
 funcCall
-    : (ID | programId) '(' argList ')'
+    : (ID | LIST_OP | programId) '(' argList ')'
     ;
 
 argList
@@ -169,15 +183,18 @@ component
 componentElem
     : INT                                        # staticComponentElem
     | varKind INT                                # varComponentElem
+    | INDEX                                      # indexComponentElem
     | '(' expr ')'                               # exprComponentElem
+    | '@'                                        # dereferenceComponentElem
     ;
 
 typeInline
     : INT '.' INT                                # inlineSequence
-    | INT 'x' typeInline                         # inlineArray
+    | (INT | '*') 'x' typeInline                         # inlineArray
     | '(' typeInline (',' typeInline)+ ')'       # inlineRecord
     | name=ID                                    # inlineUserType
     | INT                                        # inlineBitType
+    | '@' name=ID                                # inlineRefType
     ;
 
 
@@ -186,10 +203,12 @@ typeInline
 // ============================================================
 
 // Keywords (all uppercase — cannot conflict with ID which starts lowercase)
+LIST_OP : 'N' | 'Lz' | 'Qz' | 'Sp' | 'Nr';
 END   : 'END' ;
-FOR   : 'FOR' ;
-FROM  : 'FROM' ;
-TO    : 'TO' ;
+INDEXED_W : 'W' [1-5] ;
+INDEX : 'i' [0-9]+ ;
+FIN : 'FIN' [0-9]* ;
+NIL   : 'NIL' ;
 
 // Identifiers and numbers
 // INT must come before BITSEQ so pure digits match INT (longest match still applies)

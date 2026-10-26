@@ -44,6 +44,11 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PlankalkulParser#refType.
+    def visitRefType(self, ctx:PlankalkulParser.RefTypeContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PlankalkulParser#programDef.
     def visitProgramDef(self, ctx:PlankalkulParser.ProgramDefContext):
         return self.visitChildren(ctx)
@@ -79,6 +84,11 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PlankalkulParser#freeStmt.
+    def visitFreeStmt(self, ctx:PlankalkulParser.FreeStmtContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PlankalkulParser#guardStmt.
     def visitGuardStmt(self, ctx:PlankalkulParser.GuardStmtContext):
         return self.visitChildren(ctx)
@@ -89,8 +99,13 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PlankalkulParser#forLoopStmt.
-    def visitForLoopStmt(self, ctx:PlankalkulParser.ForLoopStmtContext):
+    # Visit a parse tree produced by PlankalkulParser#indexedLoopStmt.
+    def visitIndexedLoopStmt(self, ctx:PlankalkulParser.IndexedLoopStmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#finStmt.
+    def visitFinStmt(self, ctx:PlankalkulParser.FinStmtContext):
         return self.visitChildren(ctx)
 
 
@@ -109,8 +124,8 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PlankalkulParser#forLoop.
-    def visitForLoop(self, ctx:PlankalkulParser.ForLoopContext):
+    # Visit a parse tree produced by PlankalkulParser#indexedLoop.
+    def visitIndexedLoop(self, ctx:PlankalkulParser.IndexedLoopContext):
         return self.visitChildren(ctx)
 
 
@@ -184,8 +199,23 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PlankalkulParser#nilLiteral.
+    def visitNilLiteral(self, ctx:PlankalkulParser.NilLiteralContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#allocateAtom.
+    def visitAllocateAtom(self, ctx:PlankalkulParser.AllocateAtomContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PlankalkulParser#funcCallAtom.
     def visitFuncCallAtom(self, ctx:PlankalkulParser.FuncCallAtomContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#indexAtom.
+    def visitIndexAtom(self, ctx:PlankalkulParser.IndexAtomContext):
         return self.visitChildren(ctx)
 
 
@@ -196,6 +226,16 @@ class PlankalkulVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PlankalkulParser#parenExpr.
     def visitParenExpr(self, ctx:PlankalkulParser.ParenExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#listLiteral.
+    def visitListLiteral(self, ctx:PlankalkulParser.ListLiteralContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#recordLiteral.
+    def visitRecordLiteral(self, ctx:PlankalkulParser.RecordLiteralContext):
         return self.visitChildren(ctx)
 
 
@@ -234,8 +274,18 @@ class PlankalkulVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PlankalkulParser#indexComponentElem.
+    def visitIndexComponentElem(self, ctx:PlankalkulParser.IndexComponentElemContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PlankalkulParser#exprComponentElem.
     def visitExprComponentElem(self, ctx:PlankalkulParser.ExprComponentElemContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#dereferenceComponentElem.
+    def visitDereferenceComponentElem(self, ctx:PlankalkulParser.DereferenceComponentElemContext):
         return self.visitChildren(ctx)
 
 
@@ -261,6 +311,11 @@ class PlankalkulVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PlankalkulParser#inlineBitType.
     def visitInlineBitType(self, ctx:PlankalkulParser.InlineBitTypeContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PlankalkulParser#inlineRefType.
+    def visitInlineRefType(self, ctx:PlankalkulParser.InlineRefTypeContext):
         return self.visitChildren(ctx)
 
 

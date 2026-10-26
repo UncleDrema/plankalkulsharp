@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from hashlib import sha256
 
 from antlr4 import CommonTokenStream, InputStream
 from antlr4.error.ErrorListener import ErrorListener
@@ -17,8 +18,12 @@ from plankalkulsharp.semantic.analyzer import Analyzer, SemanticError
 class CompileError(Exception):
     """Raised when compilation fails."""
 
-    def __init__(self, errors: list[str]):
+    def __init__(self, errors: list[str], diagnostics: list[dict] | None = None):
         self.errors = errors
+        self.diagnostics = diagnostics if diagnostics is not None else [
+            {"stage": "compile", "file": None, "line": None, "column": None, "message": message}
+            for message in errors
+        ]
         super().__init__("\n".join(errors))
 
 
@@ -28,9 +33,11 @@ class _ErrorCollector(ErrorListener):
     def __init__(self):
         super().__init__()
         self.errors: list[str] = []
+        self.diagnostics: list[dict] = []
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         self.errors.append(f"{line}:{column}: {msg}")
+        self.diagnostics.append({"stage": "parse", "line": line, "column": column, "message": msg})
 
 
 def parse(source: str, filename: str = "<input>") -> Program:
@@ -55,7 +62,8 @@ def parse(source: str, filename: str = "<input>") -> Program:
 
     if error_listener.errors:
         raise CompileError(
-            [f"{filename}: {e}" for e in error_listener.errors]
+            [f"{filename}: {e}" for e in error_listener.errors],
+            [dict(d, file=filename) for d in error_listener.diagnostics],
         )
 
     builder = ASTBuilder()
@@ -63,7 +71,8 @@ def parse(source: str, filename: str = "<input>") -> Program:
         return builder.visit(tree)
     except AstError as e:
         raise CompileError(
-            [f"{e.loc.line}:{e.loc.column}: {e}"]
+            [f"{e.loc.line}:{e.loc.column}: {e}"],
+            [{"stage": "ast", "file": filename, "line": e.loc.line, "column": e.loc.column, "message": str(e)}],
         )
 
 
@@ -74,10 +83,14 @@ def check(program: Program, filename: str = "<input>") -> Analyzer:
     Raises CompileError on semantic errors.
     """
     analyzer = Analyzer()
+    analyzer.filename = filename
     try:
         analyzer.analyze(program)
     except SemanticError as e:
-        raise CompileError([f"{filename}: {err}" for err in e.errors]) from e
+        raise CompileError(
+            [f"{d.get('file', filename)}:{d['line']}:{d['column']}: {d['message']}" for d in analyzer.diagnostics],
+            [dict(d, file=d.get("file", filename)) for d in analyzer.diagnostics],
+        ) from e
     return analyzer
 
 
@@ -103,9 +116,14 @@ def compile_for_analyze(source_path: Path):
 def compile_to_il(source_path: Path) -> str:
     """Full pipeline: parse → check → emit IL."""
     source = source_path.read_text(encoding="utf-8")
-    filename = str(source_path)
+    return compile_source(source, str(source_path))
+
+
+def compile_source(source: str, filename: str = "<input>") -> str:
+    """Compile one immutable source snapshot, shared by the CLI and monitor."""
     program = parse(source, filename=filename)
     analyzer = check(program, filename=filename)
+    analyzer.source_sha256 = sha256(source.encode("utf-8")).hexdigest()
     try:
         return emit_il(program, analyzer)
     except EmitError as e:

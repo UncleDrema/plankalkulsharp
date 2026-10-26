@@ -1,7 +1,0 @@
-int = 8.0
-// Maximum of two 8-bit integers
-P0 max (V0[:int], V1[:int]) -> R0[:int]
-  V0 => Z1
-  (Z1 < V1) -> V1 => Z1
-  Z1 => R0
-END

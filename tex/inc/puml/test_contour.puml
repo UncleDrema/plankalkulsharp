@@ -1,0 +1,36 @@
+@startuml test_contour
+title Схема тестового контура компилятора
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #455A6E
+skinparam rectangle {
+  BorderColor #23374B
+  BackgroundColor #EBF1F7
+  FontColor #1A232D
+}
+skinparam database {
+  BorderColor #23374B
+  BackgroundColor #F5F7FA
+  FontColor #1A232D
+}
+
+left to right direction
+
+database "Актуальные тестовые\nпрограммы\n\nfibonacci\nreverse_list" as programs
+rectangle "parse\nпостроение AST" as parse
+rectangle "analyze\nсемантическая проверка" as analyze
+rectangle "compile\nгенерация CIL\nи сборка .NET" as compile
+rectangle "запуск exe\nпроверка stdout" as run
+rectangle "результаты\nтаблица и консольный вывод" as report
+
+programs --> parse
+programs --> analyze
+parse --> compile
+analyze --> compile
+compile --> run
+run --> report
+
+@enduml

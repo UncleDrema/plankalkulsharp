@@ -1,0 +1,30 @@
+@startuml pipeline
+title Общий процесс компиляции Plankalkul в CIL
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #455A6E
+skinparam rectangle {
+  BorderColor #23374B
+  BackgroundColor #EBF1F7
+  FontColor #1A232D
+}
+
+left to right direction
+
+rectangle "Исходный текст\nPlankalkul" as source
+rectangle "Лексер и парсер\nтокены, дерево разбора" as parser
+rectangle "Построитель AST\nузлы языка" as ast
+rectangle "Семантический анализ\nтипы, области видимости" as sem
+rectangle "Генератор CIL\nтекст .il" as cil
+rectangle "Сборка .NET\nисполняемый файл" as build
+
+source --> parser
+parser --> ast
+ast --> sem
+sem --> cil
+cil --> build
+
+@enduml

@@ -9,3 +9,16 @@ wheels/
 # Virtual environments
 .venv
 tools/
+
+# Local IDE settings and tool caches
+.idea/
+.pytest_cache/
+.uv-cache/
+
+# .NET build products (including the packaged runtime source project)
+bin/
+obj/
+
+# VS Code extension build dependencies and package
+node_modules/
+*.vsix

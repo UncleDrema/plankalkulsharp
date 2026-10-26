@@ -44,24 +44,22 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "antlr4-python3-runtime" },
-    { name = "pytest" },
-    { name = "types-antlr4-python3-runtime" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "types-antlr4-python3-runtime" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "antlr4-python3-runtime", specifier = "~=4.13" },
+requires-dist = [{ name = "antlr4-python3-runtime", specifier = "~=4.13" }]
+
+[package.metadata.requires-dev]
+dev = [
     { name = "pytest", specifier = "==9.0.3" },
     { name = "types-antlr4-python3-runtime", specifier = ">=4.13.0.20260408" },
 ]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
 
 [[package]]
 name = "pluggy"

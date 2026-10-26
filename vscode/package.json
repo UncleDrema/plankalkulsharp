@@ -1,0 +1,169 @@
+{
+  "name": "plankalkulsharp",
+  "displayName": "Plankalkül",
+  "description": "Язык .pk, LSP, историческая нотация и монитор исполнения",
+  "version": "0.1.6",
+  "publisher": "plankalkulsharp",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Debuggers"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:plankalkul"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "plankalkul",
+        "aliases": [
+          "Plankalkül",
+          "pk"
+        ],
+        "extensions": [
+          ".pk"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "plankalkul",
+        "scopeName": "source.plankalkul",
+        "path": "./syntaxes/pk.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "plankalkul",
+        "path": "./snippets/pk.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "plankalkul.settings",
+        "title": "Plankalkül: Настройки запуска"
+      },
+      {
+        "command": "plankalkul.notation",
+        "title": "Plankalkül: Нотация рядом"
+      },
+      {
+        "command": "plankalkul.run",
+        "title": "Plankalkül: Запустить программу"
+      },
+      {
+        "command": "plankalkul.library",
+        "title": "Plankalkül: Стандартные планы"
+      },
+      {
+        "command": "plankalkul.monitor",
+        "title": "Plankalkül: Монитор запусков"
+      },
+      {
+        "command": "plankalkul.restart",
+        "title": "Plankalkül: Перезапустить языковой сервер"
+      },
+      {
+        "command": "plankalkul.help",
+        "title": "Plankalkül: Справка по языку"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "plankalkul.notation",
+          "when": "resourceLangId == plankalkul",
+          "group": "navigation"
+        },
+        {
+          "command": "plankalkul.run",
+          "when": "resourceLangId == plankalkul",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Plankalkül",
+      "properties": {
+        "plankalkul.startPaused": {
+          "type": "boolean",
+          "default": true,
+          "description": "Предпочитать пошаговый режим в выборе перед запуском. Первая остановка — до выполнения первой контрольной точки."
+        },
+        "plankalkul.python": {
+          "type": "string",
+          "default": "",
+          "description": "Python с установленным plankalkulsharp. Пусто: .venv проекта или python из PATH."
+        },
+        "plankalkul.heapSize": {
+          "type": "integer",
+          "default": 1048576,
+          "minimum": 8,
+          "maximum": 2147483640,
+          "description": "Размер собственной кучи, байт; кратен 8."
+        },
+        "plankalkul.delayMs": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Задержка контрольных точек, мс."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[plankalkul]": {
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "off"
+        },
+        "editor.suggest.showSnippets": true,
+        "editor.snippetSuggestions": "top"
+      }
+    },
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "plankalkul-machine",
+          "title": "Plankalkül",
+          "icon": "media/machine.svg"
+        }
+      ]
+    },
+    "views": {
+      "plankalkul-machine": [
+        {
+          "id": "plankalkul.monitorView",
+          "name": "Машина Plankalkül",
+          "type": "webview"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.js --bundle --platform=node --external:vscode --outfile=dist/extension.js",
+    "package": "npm run build && vsce package --allow-missing-repository --skip-license",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.10"
+  },
+  "license": "UNLICENSED"
+}

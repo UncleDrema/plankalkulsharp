@@ -59,6 +59,11 @@ def main():
         print(f"ANTLR4 generation failed with code {result.returncode}", file=sys.stderr)
         sys.exit(1)
 
+    # ANTLR emits trailing spaces; keep regenerated sources clean and reproducible.
+    for path in OUTPUT.glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        path.write_text("".join(line.rstrip() + "\n" for line in source.splitlines()), encoding="utf-8")
+
     print(f"Generated parser in {OUTPUT}")
 
 

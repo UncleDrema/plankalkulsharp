@@ -19,6 +19,8 @@ class Loc:
     """Source location."""
     line: int
     column: int
+    end_line: int | None = None
+    end_column: int | None = None
 
     def __str__(self) -> str:
         return f"{self.line}:{self.column}"
@@ -52,10 +54,10 @@ class BitSeqType(TypeNode):
 @dataclass(frozen=True)
 class ArrayType(TypeNode):
     """n × T — array of n elements of type T."""
-    size: int
+    size: int | None
     element_type: TypeNode
     def __str__(self):
-        return f"{self.size}x{self.element_type}"
+        return f"{self.size if self.size is not None else chr(42)}x{self.element_type}"
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,15 @@ class UserType(TypeNode):
     name: str
     def __str__(self):
         return f"{self.name}"
+
+
+@dataclass(frozen=True)
+class RefType(TypeNode):
+    """@name — a typed heap reference."""
+    target: str
+
+    def __str__(self):
+        return f"@{self.target}"
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +147,27 @@ class BitSeqLiteral(ExprNode):
 
 
 @dataclass(frozen=True)
+class ListLiteral(ExprNode):
+    elements: tuple[ExprNode, ...]
+
+
+@dataclass(frozen=True)
+class RecordLiteral(ExprNode):
+    elements: tuple[ExprNode, ...]
+
+
+@dataclass(frozen=True)
+class NilLiteral(ExprNode):
+    """NIL — an untyped null reference."""
+
+
+@dataclass(frozen=True)
+class Allocate(ExprNode):
+    """@name — allocate a zero-initialized named heap object."""
+    target: str
+
+
+@dataclass(frozen=True)
 class VarRef(ExprNode):
     """Variable reference: V0, Z1, R0, C3 etc."""
     kind: str          # 'V', 'Z', 'C', 'R'
@@ -170,6 +202,14 @@ class DynamicAccess(ComponentAccess):
 
     def __str__(self):
         return f'{self.expr}'
+
+
+@dataclass(frozen=True)
+class DereferenceAccess(ComponentAccess):
+    """@ — follow a typed heap reference."""
+
+    def __str__(self):
+        return '@'
 
 
 @dataclass(frozen=True)
@@ -218,6 +258,12 @@ class Assignment(StmtNode):
 
 
 @dataclass(frozen=True)
+class Free(StmtNode):
+    """expr => @ — release one heap object."""
+    value: ExprNode
+
+
+@dataclass(frozen=True)
 class GuardedStmt(StmtNode):
     """Guarded conditional: (condition) -> body."""
     condition: ExprNode
@@ -231,12 +277,22 @@ class WLoop(StmtNode):
 
 
 @dataclass(frozen=True)
-class ForLoop(StmtNode):
-    """For-loop: FOR var FROM start TO end { body }."""
-    var: VarRef
-    start: ExprNode
-    end: ExprNode
+class IndexRef(ExprNode):
+    index: int
+
+
+@dataclass(frozen=True)
+class IndexedLoop(StmtNode):
+    variant: int
+    index: int
+    bounds: tuple[ExprNode, ...]
     body: list[StmtNode]
+
+
+@dataclass(frozen=True)
+class Fin(StmtNode):
+    depth: int
+    condition: ExprNode | None = None
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,38 @@
+@startuml compiler_components
+title Компоненты компилятора Plankalkul
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #455A6E
+skinparam component {
+  BorderColor #23374B
+  BackgroundColor #EBF1F7
+  FontColor #1A232D
+}
+skinparam database {
+  BorderColor #23374B
+  BackgroundColor #F5F7FA
+  FontColor #1A232D
+}
+
+left to right direction
+
+component "CLI\nparse / analyze / compile" as cli
+component "Фасад компилятора\nуправление стадиями" as facade
+component "Фронтенд\nлексер, парсер, AST builder" as frontend
+component "Семантический анализатор\nтипы, символы, проверки" as semantic
+component "Генератор CIL\nметоды, локальные переменные,\nструктуры, переходы" as codegen
+component "Вспомогательный\nпроект .NET" as dotnet
+database "Диагностика\nошибки и предупреждения" as diag
+
+cli --> facade
+facade --> frontend
+frontend --> semantic
+semantic --> codegen
+codegen --> dotnet
+semantic --> diag
+frontend --> diag
+
+@enduml

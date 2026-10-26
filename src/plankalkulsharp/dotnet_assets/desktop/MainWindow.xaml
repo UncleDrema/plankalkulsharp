@@ -1,0 +1,115 @@
+<Window x:Class="PlankalkulMachine.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Plankalkül · рабочая среда" Width="1520" Height="900" MinWidth="1000" MinHeight="650"
+ WindowStartupLocation="CenterScreen" Closing="Window_Closing" PreviewKeyDown="Window_KeyDown"
+ AllowDrop="True" DragOver="Files_DragOver" Drop="Files_Drop">
+ <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Theme.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
+ <DockPanel>
+  <Menu DockPanel.Dock="Top" Padding="8,4">
+   <MenuItem Header="_Файл"><MenuItem Header="Открыть .pk…" InputGestureText="Ctrl+O" Click="Open_Click"/><MenuItem Header="Открыть папку…" Click="Folder_Click"/><MenuItem Header="Перечитать файл" Click="Reload_Click"/></MenuItem>
+   <MenuItem Header="_Вид"><MenuItem Header="Программа" Click="Workspace_Click"/><MenuItem Header="Стандартные планы" Click="Library_Click"/><MenuItem Header="Справка по языку" InputGestureText="F1" Click="Help_Click"/></MenuItem>
+   <MenuItem Header="_Настройки"><MenuItem Name="PythonButton" Header="Интерпретатор Python…" Click="Python_Click"/></MenuItem>
+  </Menu>
+  <Border DockPanel.Dock="Top" Background="White" BorderBrush="#D5DDE2" BorderThickness="0,0,0,1" Padding="12,8">
+   <DockPanel>
+    <TextBlock DockPanel.Dock="Left" Text="Plankalkül" FontSize="20" FontWeight="SemiBold" Margin="0,0,24,0" VerticalAlignment="Center"/>
+    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Name="HelpButton" Content="Справка по языку" Click="Help_Click"/><CheckBox Name="MemoryToggle" Content="Память" IsChecked="True" VerticalAlignment="Center" Margin="12,0,0,0" Click="Memory_Toggle"/></StackPanel>
+    <StackPanel Orientation="Horizontal">
+     <Button Name="RunButton" AutomationProperties.AutomationId="RunButton" Content="Запустить" Click="Run_Click" ToolTip="Новый запуск · F5" Style="{StaticResource PrimaryButton}"/>
+     <Button Name="PauseButton" AutomationProperties.AutomationId="PauseButton" Content="Пауза" Click="Pause_Click"/>
+     <Button Name="ResumeButton" AutomationProperties.AutomationId="ResumeButton" Content="Продолжить" Click="Resume_Click"/>
+     <Button Name="StopButton" AutomationProperties.AutomationId="StopButton" Content="Остановить" Click="Stop_Click"/>
+    </StackPanel>
+   </DockPanel>
+  </Border>
+  <Border DockPanel.Dock="Bottom" Background="#EAF0F2" Padding="12,6"><TextBlock Name="StatusText" AutomationProperties.AutomationId="StatusText" Text="Откройте .pk или перетащите файл в окно" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></Border>
+  <Grid Margin="12">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="205" MinWidth="160"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <DockPanel>
+    <StackPanel DockPanel.Dock="Top">
+     <Button Name="OpenButton" AutomationProperties.AutomationId="OpenButton" Content="Открыть .pk…" Click="Open_Click" HorizontalContentAlignment="Left"/>
+     <Button Content="Программа и нотация" Click="Workspace_Click" HorizontalContentAlignment="Left"/>
+     <Button Name="LibraryButton" Content="Стандартные планы" Click="Library_Click" HorizontalContentAlignment="Left"/>
+    </StackPanel>
+    <TabControl Margin="0,12,0,0">
+     <TabItem Header="Файлы"><DockPanel>
+      <StackPanel DockPanel.Dock="Top"><Button Content="Выбрать папку…" Click="Folder_Click"/><TextBlock Name="FolderText" Text="Папка не выбрана" TextTrimming="CharacterEllipsis" Margin="6" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/><TextBox Name="FileFilter" TextChanged="FileFilter_Changed" ToolTip="Поиск файлов по имени" AutomationProperties.Name="Поиск файлов" Margin="4"/></StackPanel>
+      <TabControl><TabItem Header="В папке"><ListBox Name="FilesList" DisplayMemberPath="Name" SelectionChanged="File_Selected"/></TabItem><TabItem Header="Недавние"><ListBox Name="RecentList" DisplayMemberPath="Name" SelectionChanged="File_Selected"/></TabItem></TabControl>
+     </DockPanel></TabItem>
+     <TabItem Header="Запуски"><ListBox Name="RunsList" AutomationProperties.AutomationId="RunsList" DisplayMemberPath="Title" SelectionChanged="Runs_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/></TabItem>
+    </TabControl>
+   </DockPanel>
+   <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" ResizeDirection="Columns"/>
+   <Grid Grid.Column="2">
+    <ContentControl Name="HelpHost" Visibility="Collapsed"/>
+    <ContentControl Name="LibraryHost" Visibility="Collapsed"/>
+    <Grid Name="WorkspacePanel">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Name="MemoryDivider" Width="8"/><ColumnDefinition Name="MemoryColumn" Width="300"/></Grid.ColumnDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+     <StackPanel Grid.ColumnSpan="3" Margin="0,0,0,12">
+      <TextBlock Name="FileTitle" Text="Откройте программу .pk" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+      <TextBlock Name="FilePathText" Text="Код и историческая нотация отображаются рядом. Файл редактируется во внешнем редакторе." Foreground="#52636D" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,3,0,10"/>
+      <WrapPanel>
+       <StackPanel Margin="0,0,16,0"><TextBlock Text="Аргументы · JSON через пробел"/><TextBox Name="ArgumentsBox" AutomationProperties.AutomationId="ArgumentsBox" MinWidth="230" ToolTip="Например: 5 3 или [1, 2, 3]. Записи тоже передаются JSON-массивами."/></StackPanel>
+       <StackPanel Margin="0,0,16,0"><TextBlock Text="Куча, байт"/><TextBox Name="HeapBox" AutomationProperties.AutomationId="HeapBox" Width="115" Text="1048576"/></StackPanel>
+       <StackPanel><TextBlock Text="Задержка, мс"/><TextBox Name="DelayBox" AutomationProperties.AutomationId="DelayBox" Width="100" Text="0" TextChanged="Delay_TextChanged" ToolTip="0–1000 мс; можно менять во время выполнения"/></StackPanel>
+      </WrapPanel>
+     </StackPanel>
+     <GridSplitter Name="MemorySplitter" Grid.Row="1" Grid.Column="1" Width="6" HorizontalAlignment="Center" ResizeDirection="Columns"/>
+      <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+        <Grid.RowDefinitions><RowDefinition Height="2*"/><RowDefinition Height="6"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="160"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="160"/></Grid.ColumnDefinitions>
+          <DockPanel Grid.Column="0">
+            <TextBlock DockPanel.Dock="Top" Text="Исходник · только чтение" FontWeight="SemiBold" Margin="8"/>
+            <Grid ClipToBounds="True">
+            <TextBox Name="SourceBox" AutomationProperties.AutomationId="SourceBox" IsReadOnly="True" IsInactiveSelectionHighlightEnabled="True" SelectionOpacity="0" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextChanged="NotationSource_Changed" SelectionChanged="SourceSelection_Changed"/>
+              <Canvas Name="SourceHighlight" IsHitTestVisible="False" ClipToBounds="True" Opacity="0.45"/>
+            </Grid>
+          </DockPanel>
+          <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Gainsboro" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"/>
+            <DockPanel Grid.Column="2" Background="#FFFCF5">
+              <StackPanel DockPanel.Dock="Top" Margin="8">
+                <DockPanel><Button DockPanel.Dock="Right" Content="Обновить" Click="Notation_Refresh"/><TextBlock Text="Нотация Plankalkül" FontWeight="SemiBold"/></DockPanel>
+                <TextBlock Text="V — номер переменной/результата · K — компонент · S — структура" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock Text="Наведите на формулу → участок кода" ToolTip="Многострочная проекция AST. 1.n — n бит; S описывает выбранный компонент, а без K — всю переменную. R с номером процедуры — её результат; имя — в подписи или подсказке. Пустая K скрыта. Охра: расширения диалекта (@, NIL, объявления, кортеж результатов). Наведите на формулу, чтобы подсветить участок исходника; нажмите, чтобы закрепить выделение." TextWrapping="Wrap" Foreground="#645B50" Margin="0,4"/>
+                <TextBlock Name="NotationStatus" Text="Откройте .pk." TextWrapping="Wrap"/>
+              </StackPanel>
+              <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <StackPanel Name="NotationRows" Margin="12,0,12,12"/>
+              </ScrollViewer>
+            </DockPanel>
+        </Grid>
+        <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows"/><TabControl Grid.Row="2" Margin="0,4,0,0">
+          <TabItem Name="ProgramOutputTab" Header="Вывод"><TextBox Name="OutputBox" AutomationProperties.AutomationId="OutputBox" IsReadOnly="True" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/></TabItem>
+          <TabItem Name="BuildDiagnosticsTab" Header="Диагностика"><Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions><TextBox Name="DiagnosticBox" AutomationProperties.AutomationId="DiagnosticBox" IsReadOnly="True" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/><ListBox Grid.Row="1" Name="DiagnosticsList" AutomationProperties.AutomationId="DiagnosticsList" DisplayMemberPath="Text" SelectionChanged="Diagnostic_SelectionChanged"/></Grid></TabItem>
+          <TabItem Header="События памяти"><TextBox Name="MemoryBox" AutomationProperties.AutomationId="MemoryBox" IsReadOnly="True" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/></TabItem>
+          <TabItem Name="HeapBytesTab" Header="Куча (hex)">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                <Button Name="HeapPreviousButton" Content="← 256" Click="HeapPrevious_Click"/>
+                <TextBlock Text=" Смещение (hex): " VerticalAlignment="Center"/>
+                <TextBox Name="HeapOffsetBox" Text="0" Width="90"/>
+                <Button Name="HeapGoButton" Content="Перейти" Click="HeapGo_Click"/>
+                <Button Name="HeapNextButton" Content="256 →" Click="HeapNext_Click"/>
+              </StackPanel>
+              <TextBlock Name="HeapDumpStatusText" DockPanel.Dock="Top" TextWrapping="Wrap"/>
+              <RichTextBox Name="HexDumpBox" AutomationProperties.AutomationId="HexDumpBox" IsReadOnly="True" FontFamily="Consolas" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><FlowDocument PageWidth="850"><Paragraph>Поставьте программу на паузу для просмотра кучи.</Paragraph></FlowDocument></RichTextBox>
+            </DockPanel>
+          </TabItem>
+        </TabControl>
+      </Grid>
+      <Grid Name="MemoryPanel" Grid.Row="1" Grid.Column="2">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="110"/><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <TextBlock Name="StatsText" AutomationProperties.AutomationId="StatsText" TextWrapping="Wrap" Margin="0,0,0,8"/>
+        <Grid Grid.Row="1"><Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions><Canvas Name="HeapCanvas" AutomationProperties.AutomationId="HeapCanvas" Background="Gainsboro" SizeChanged="HeapCanvas_SizeChanged"/><ListBox Grid.Row="1" Name="MemoryMap" AutomationProperties.AutomationId="MemoryMap" DisplayMemberPath="Description" SelectionChanged="Block_SelectionChanged"/></Grid>
+        <DataGrid Grid.Row="2" Name="ObjectsGrid" AutomationProperties.AutomationId="ObjectsGrid" IsReadOnly="True" AutoGenerateColumns="True" AutoGeneratingColumn="Grid_AutoGeneratingColumn" SelectionChanged="Object_SelectionChanged"/>
+        <DataGrid Grid.Row="3" Name="InspectorGrid" AutomationProperties.AutomationId="InspectorGrid" IsReadOnly="True" AutoGenerateColumns="True" AutoGeneratingColumn="Grid_AutoGeneratingColumn" MouseDoubleClick="Inspector_DoubleClick" Margin="0,8,0,0"/>
+      </Grid>
+
+    </Grid>
+   </Grid>
+  </Grid>
+ </DockPanel>
+</Window>

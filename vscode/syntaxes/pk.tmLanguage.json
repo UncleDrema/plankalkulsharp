@@ -1,0 +1,21 @@
+{
+  "scopeName": "source.plankalkul",
+  "patterns": [
+    { "name": "comment.line.double-slash.pk", "begin": "//", "end": "$" },
+    { "name": "comment.block.pk", "begin": "/\\*", "end": "\\*/" },
+    {
+      "name": "keyword.control.pk",
+      "match": "\\b(?:W[1-5]?|FIN[0-9]*|END)\\b"
+    },
+    { "name": "constant.language.pk", "match": "\\b(?:NIL|L)\\b" },
+    { "name": "entity.name.function.pk", "match": "\\bP[0-9]+\\b" },
+    { "name": "variable.other.pk", "match": "\\b(?:[VZRC]|i)[0-9]+\\b" },
+    { "name": "constant.numeric.pk", "match": "\\b[0-9]+(?:\\.0)?\\b" },
+    { "name": "keyword.operator.pk", "match": "=>|->|!=|<=|>=|[+*/=&|~@<>-]" },
+    { "name": "support.function.pk", "match": "\\b(?:N|Lz|Nr|Qz|Sp)\\b" },
+    {
+      "name": "entity.name.function.pk",
+      "match": "\\b[a-z_][A-Za-z_0-9]*(?=\\s*\\()"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ from typing import Any
 from antlr4 import ParserRuleContext, RecognitionException
 
 from plankalkulsharp.plankalkul_ast.nodes import (
-    ArrayType,
+    ArrayType, ListLiteral, RecordLiteral,
     Assignment,
     BinOp,
     BinaryExpr,
@@ -20,16 +20,19 @@ from plankalkulsharp.plankalkul_ast.nodes import (
     BitType,
     BoolLiteral,
     ComponentAccess,
+    DereferenceAccess,
     DynamicAccess,
     ExprNode,
-    ForLoop,
+    IndexedLoop, IndexRef, Fin,
     FuncCall,
     GuardedStmt,
     IntLiteral,
+    Allocate,
     Loc,
     Program,
     ProgramDef,
     RecordType,
+    RefType,
     StaticAccess,
     StmtNode,
     TypeDef,
@@ -37,8 +40,10 @@ from plankalkulsharp.plankalkul_ast.nodes import (
     UnOp,
     UnaryExpr,
     UserType,
+    NilLiteral,
     VarRef,
     WLoop,
+    Free,
 )
 from plankalkulsharp.frontend.generated.PlankalkulParser import PlankalkulParser
 from plankalkulsharp.frontend.generated.PlankalkulVisitor import PlankalkulVisitor
@@ -53,7 +58,9 @@ class AstError(Exception):
 
 def _loc(ctx: ParserRuleContext) -> Loc:
     token = ctx.start
-    return Loc(line=token.line, column=token.column)
+    stop = ctx.stop or token
+    return Loc(line=token.line, column=token.column,
+               end_line=stop.line, end_column=stop.column + len(stop.text or ""))
 
 
 # Mapping from comparison operator text to BinOp
@@ -96,7 +103,7 @@ class ASTBuilder(PlankalkulVisitor):
         return TypeDef(loc=_loc(ctx), name=ctx.name.text, type_expr=type_expr)
 
     def visitBitType(self, ctx: PlankalkulParser.BitTypeContext) -> BitType:
-        return self.visitBitType(ctx)
+        return BitType(loc=_loc(ctx))
 
     def visitBitSeqType(self, ctx: PlankalkulParser.BitSeqTypeContext) -> BitSeqType:
         length = int(ctx.INT(0).getText())
@@ -106,9 +113,15 @@ class ASTBuilder(PlankalkulVisitor):
         return BitSeqType(loc=_loc(ctx), length=length)
 
     def visitArrayType(self, ctx: PlankalkulParser.ArrayTypeContext) -> ArrayType:
-        size = int(ctx.INT().getText())
+        size = int(ctx.INT().getText()) if ctx.INT() else None
         element_type = self.visit(ctx.typeExpr())
         return ArrayType(loc=_loc(ctx), size=size, element_type=element_type)
+
+    def visitListLiteral(self, ctx):
+        return ListLiteral(_loc(ctx), tuple(self.visit(e) for e in ctx.argList().expr()))
+
+    def visitRecordLiteral(self, ctx):
+        return RecordLiteral(_loc(ctx), tuple(self.visit(e) for e in ctx.expr()))
 
     def visitRecordType(self, ctx: PlankalkulParser.RecordTypeContext) -> RecordType:
         fields = tuple(self.visit(te) for te in ctx.typeExpr())
@@ -116,6 +129,9 @@ class ASTBuilder(PlankalkulVisitor):
 
     def visitUserType(self, ctx: PlankalkulParser.UserTypeContext) -> UserType:
         return UserType(loc=_loc(ctx), name=ctx.name.text)
+
+    def visitRefType(self, ctx: PlankalkulParser.RefTypeContext) -> RefType:
+        return RefType(loc=_loc(ctx), target=ctx.name.text)
 
     # ------------------------------------------------------------------
     # Program definitions
@@ -163,6 +179,9 @@ class ASTBuilder(PlankalkulVisitor):
         target = self.visitVarRef(ctx.varRef())
         return Assignment(loc=_loc(ctx), value=value, target=target)
 
+    def visitFreeStmt(self, ctx: PlankalkulParser.FreeStmtContext) -> Free:
+        return Free(loc=_loc(ctx), value=self.visit(ctx.expr()))
+
     def visitGuardStmt(self, ctx: PlankalkulParser.GuardStmtContext) -> GuardedStmt:
         condition = self.visit(ctx.expr())
         guard_body = ctx.guardBody()
@@ -183,16 +202,29 @@ class ASTBuilder(PlankalkulVisitor):
         body = [self.visit(s) for s in ctx.statement()]
         return WLoop(loc=_loc(ctx), body=body)
 
-    def visitForLoopStmt(self, ctx: PlankalkulParser.ForLoopStmtContext) -> StmtNode:
-        return self.visit(ctx.forLoop())
+    def visitIndexedLoopStmt(self, ctx):
+        return self.visit(ctx.indexedLoop())
 
-    def visitForLoop(self, ctx: PlankalkulParser.ForLoopContext) -> ForLoop:
-        var = self.visitVarRef(ctx.varRef())
-        exprs = ctx.expr()
-        start = self.visit(exprs[0])
-        end = self.visit(exprs[1])
-        body = self._visit_statement_list(ctx.statementList())
-        return ForLoop(loc=_loc(ctx), var=var, start=start, end=end, body=body)
+    def visitIndexedLoop(self, ctx):
+        return IndexedLoop(loc=_loc(ctx), variant=int(ctx.INDEXED_W().getText()[1:]),
+                           index=int(ctx.INDEX().getText()[1:]),
+                           bounds=tuple(self.visit(e) for e in ctx.expr()),
+                           body=self._visit_statement_list(ctx.statementList()))
+
+    def visitIndexAtom(self, ctx):
+        return IndexRef(loc=_loc(ctx), index=int(ctx.INDEX().getText()[1:]))
+
+    def visitIndexComponentElem(self, ctx):
+        return DynamicAccess(loc=_loc(ctx), expr=self.visitIndexAtom(ctx))
+
+    def visitFinStmt(self, ctx):
+        digits = ctx.FIN().getText()[3:].lstrip('0')
+        # A depth with more digits than source length cannot fit its nesting.
+        if len(digits) > len(str(len(ctx.start.getInputStream().strdata))):
+            raise AstError("FIN depth exceeds available nesting", _loc(ctx))
+        depth = int(digits or '0') if ctx.FIN().getText()[3:] else 1
+        return Fin(loc=_loc(ctx), depth=depth,
+                   condition=self.visit(ctx.expr()) if ctx.expr() else None)
 
     # ------------------------------------------------------------------
     # Expressions
@@ -297,12 +329,18 @@ class ASTBuilder(PlankalkulVisitor):
         bits = tuple(ch == 'L' for ch in text)
         return BitSeqLiteral(loc=_loc(ctx), bits=bits)
 
+    def visitNilLiteral(self, ctx: PlankalkulParser.NilLiteralContext) -> NilLiteral:
+        return NilLiteral(loc=_loc(ctx))
+
+    def visitAllocateAtom(self, ctx: PlankalkulParser.AllocateAtomContext) -> Allocate:
+        return Allocate(loc=_loc(ctx), target=ctx.name.text)
+
     def visitFuncCallAtom(self, ctx: PlankalkulParser.FuncCallAtomContext) -> ExprNode:
         return self.visit(ctx.funcCall())
 
     def visitFuncCall(self, ctx: PlankalkulParser.FuncCallContext) -> FuncCall:
-        if ctx.ID():
-            name = ctx.ID().getText()
+        if ctx.ID() or ctx.LIST_OP():
+            name = (ctx.ID() or ctx.LIST_OP()).getText()
         else:
             pid = ctx.programId()
             number = int(pid.INT().getText())
@@ -348,7 +386,7 @@ class ASTBuilder(PlankalkulVisitor):
     # ------------------------------------------------------------------
 
     def visitInlineArray(self, ctx: PlankalkulParser.InlineArrayContext) -> ArrayType:
-        size = int(ctx.INT().getText())
+        size = int(ctx.INT().getText()) if ctx.INT() else None
         element = self.visit(ctx.typeInline())
         return ArrayType(loc=_loc(ctx), size=size, element_type=element)
 
@@ -359,6 +397,9 @@ class ASTBuilder(PlankalkulVisitor):
     def visitInlineUserType(self, ctx: PlankalkulParser.InlineUserTypeContext) -> UserType:
         return UserType(loc=_loc(ctx), name=ctx.name.text)
 
+    def visitInlineRefType(self, ctx: PlankalkulParser.InlineRefTypeContext) -> RefType:
+        return RefType(loc=_loc(ctx), target=ctx.name.text)
+
     def visitInlineSequence(self, ctx:PlankalkulParser.InlineSequenceContext):
         size = int(ctx.INT(0).getText())
         bit_marker = int(ctx.INT(1).getText())
@@ -367,7 +408,7 @@ class ASTBuilder(PlankalkulVisitor):
         return BitSeqType(loc=_loc(ctx), length=size)
 
     def visitInlineBitType(self, ctx: PlankalkulParser.InlineBitTypeContext) -> TypeNode:
-        return self.visitBitType(ctx)
+        return BitType(loc=_loc(ctx))
 
     def visitBitType(self, ctx: PlankalkulParser.BitTypeContext | PlankalkulParser.InlineBitTypeContext) -> BitType:
         value = int(ctx.INT().getText())
@@ -392,3 +433,8 @@ class ASTBuilder(PlankalkulVisitor):
     def visitExprComponentElem(self, ctx: PlankalkulParser.ExprComponentElemContext) -> DynamicAccess:
         expr = self.visit(ctx.expr())
         return DynamicAccess(loc=_loc(ctx), expr=expr)
+
+    def visitDereferenceComponentElem(
+        self, ctx: PlankalkulParser.DereferenceComponentElemContext
+    ) -> DereferenceAccess:
+        return DereferenceAccess(loc=_loc(ctx))

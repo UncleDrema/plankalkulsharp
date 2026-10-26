@@ -1,0 +1,6 @@
+// Internal type parameters: item, other, selected.
+// The static field 0 is specialized to the requested projection.
+P0 (V0[:* x item]) -> R0[:* x selected]
+[] => R0
+W1 i0 (N(V0)) { Lz(R0, [V0[i0.0]]) => R0 }
+END

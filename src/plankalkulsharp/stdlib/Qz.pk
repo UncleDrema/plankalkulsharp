@@ -1,0 +1,5 @@
+// Internal type parameters: item, other, selected.
+P0 (V0[:* x item], V1[:* x other]) -> R0[:* x (item, other)]
+[] => R0
+W1 i0 (N(V0)) { Lz(R0, [(V0[i0], V1[i0])]) => R0 }
+END
